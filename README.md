@@ -1,2 +1,2 @@
 # MB_reinforcement_learning
-Mushroom Body inspired implementations of reinforcement learning algorithms
+Mushroom Body models that implement reinforcement learning algorithms
