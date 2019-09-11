@@ -4,13 +4,15 @@ JOURNAL VOL, PAGES
 
 Contents:
  - mb_vs.m: code to run multiple alternative forced choice simulations using the VS/VSlambda model
- - mb_mv_a.m: code to run multiple alternative forced choice simulations using the MV model
- - mb_mv_b.m: code to run multiple alternative forced choice simulations using the MV model
- - mb_mv_c.m: code to run multiple alternative forced choice simulations using the MV model
- - mb_mv_d.m: code to run multiple alternative forced choice simulations using the MV model
+ - mb_mv_a.m: code to run multiple alternative forced choice simulations using the MV model with overlapping cue representations.
+ - mb_mv_b.m: code to run multiple alternative forced choice simulations using the MV model with overlapping cue representations, in order 
+ to examine how each single Kenyon cell contributes to the reward prediction for a given cue.
+ - mb_mv_c.m: code to run multiple alternative forced choice simulations using the MV model with non-overlapping cue representations and 
+ perfect plasticity.
+ - mb_mv_d.m: code to run multiple alternative forced choice simulations using the MV model with non-overlapping cue representations.
  - mb_vs_conditioning.m: code to run associative conditioning simulations using the VSlambda model
  - mb_mv_conditioning.m: code to run associative conditioning simulations using the MV model
- - mb_reward_schedules.m: code to generate a prespecified and paramterised reward schedule for use in the simulations
+ - mb_reward_schedules.m: code to generate a specific and parameterised reward schedule for use in the simulations
  - mb_vs_mv_analysis.m: code to run all data generation and data analysis.
  - utils/: a folder containing variety of MATLAB functions, some of which are called on for e.g. filtering.
  
@@ -26,7 +28,7 @@ Example usage:
  generated data, analyses, and plots will be saved. It is also the directory from which any data will be read in for analysis. 
  -  mb_vs_mv_analysis.m is divided into subroutines, labelled by the variable ‘flag’. To run, for example, subroutine 2 (produces 
  Fig. 2a-d in the paper), open MATLAB and run:
-    mb_vs_mv_analysis(2);
+mb_vs_mv_analysis(2);
  - A single run of, for example, the VS model (mb_vs.m) takes less than a second (using the reward schedules outlined in the paper). Some 
  of the more heavy analyses, such as subroutine 8 (generating performance indices for all 96 types of intervention in the associative 
  conditioning simulations) can take a few hours, depending on the specs of your computer. 
