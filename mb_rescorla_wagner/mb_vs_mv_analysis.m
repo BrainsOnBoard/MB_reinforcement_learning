@@ -1,6 +1,6 @@
-function mb_vs_mv_analysis(flag,varargin)
+function mb_vs_mv_analysis(flag)
 %
-% MB_VS_MV_ANALYSIS(FLAG,VARARGIN)
+% MB_VS_MV_ANALYSIS(FLAG)
 %
 % Analyse data for Bennett et al. 2019.
 % Valence specific (VS) and mixed valence (MV) MB models are analysed.
@@ -449,14 +449,10 @@ if flag==8
   %%%%
   %%%% Generate associative conditioning experiment data for MV model
   %%%%
-  if nargin>1
-    rundataflag = varargin{1};
-  end;
   
   % # RNG seeds
   nrep = 1000;
-  
-  if rundataflag
+ 
 %     % MacBook
 %     % Setup parallel pool
 %     p = parcluster;
@@ -468,20 +464,19 @@ if flag==8
 %       matlabpool close force local;
 %       matlabpool(NC);
 %     end;
-    
-    % Office Linux
-    % Setup parallel pool
-		p = gcp('nocreate');
-		NC = min(nrep,7);
-		if isempty(p)
-			pp = parpool(NC);
-		else
-			if p.NumWorkers~=NC
-				delete(p);
-				pp = parpool(NC);
-			end;
-		end;
-	end;
+
+  % Office Linux
+  % Setup parallel pool
+  p = gcp('nocreate');
+  NC = min(nrep,7);
+  if isempty(p)
+    pp = parpool(NC);
+  else
+    if p.NumWorkers~=NC
+      delete(p);
+      pp = parpool(NC);
+    end;
+  end;
   
   % Init params
   nip = 4; % # intervention protocols (intervene during CS+ only/CS+ and CS-/testing only/CS+, CS- and testing)
@@ -497,118 +492,111 @@ if flag==8
   intrvn_amp = [0.1 5];
   rew_amp = [-1 1 0];
   
-  if rundataflag
-    % Allocate memory for interventions
-    pre = zeros(nip,ntarg,ngi,nrt,nrep,nt,2); % Value predictions (m+ - m-)
-    dec = zeros(nip,ntarg,ngi,nrt,nrep,nt); % Decisions
-    % Allocate memory for controls
-    cpre = zeros(nrt,nrep,nt,2); % Value predictions (m+ - m-)
-    cdec = zeros(nrt,nrep,nt); % Decisions
-    
-		tic;
-    % Run interventions
-    for rt=1:nrt
-      for ip=1:nip
-        for targ=1:ntarg          
-          for gi=1:ngi
-            for it=1:nit
-              spmd(min(NC,nrep-(it-1)*NC))
-                if gi==1
-                  intrvn_schedule = ones(nt,1);
-                elseif gi==2
-                  intrvn_schedule = zeros(nt,1);
-                end;
-                % Generate intervention schedules for all trials
-                if ip==1 % Intervention during CS+ training only
-                  intrvn_schedule(1:nt/3) = intrvn_amp(gi) * ones(nt/3,1);
-                elseif ip==2 % Intervention during both CS+ training and CS-
-                  intrvn_schedule(1:2*nt/3) = intrvn_amp(gi) * ones(2*nt/3,1);
-                elseif ip==3 % Intervention during test only
-                  intrvn_schedule((2*nt/3 + 1):nt) = intrvn_amp(gi) * ones(nt/3,1);
-                elseif ip==4 % Intervention during both CS+, CS- and testing
-                  intrvn_schedule = intrvn_amp(gi) * ones(nt,1);
-                end;
-                % Generate reward schedule
-                rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
-                % Run model
-                q = mb_mv_conditioning((it-1)*NC+labindex,rew,1.25e-2,'intervene_id',intrvn_id(targ),mod(gi,2),intrvn_schedule);
+  % Allocate memory for interventions
+  pre = zeros(nip,ntarg,ngi,nrt,nrep,nt,2); % Value predictions (m+ - m-)
+  dec = zeros(nip,ntarg,ngi,nrt,nrep,nt); % Decisions
+  % Allocate memory for controls
+  cpre = zeros(nrt,nrep,nt,2); % Value predictions (m+ - m-)
+  cdec = zeros(nrt,nrep,nt); % Decisions
+  
+  tic;
+  % Run interventions
+  for rt=1:nrt
+    for ip=1:nip
+      for targ=1:ntarg
+        for gi=1:ngi
+          for it=1:nit
+            spmd(min(NC,nrep-(it-1)*NC))
+              if gi==1
+                intrvn_schedule = ones(nt,1);
+              elseif gi==2
+                intrvn_schedule = zeros(nt,1);
               end;
-              for j=1:min(NC,nrep-(it-1)*NC)
-                qq = q{j};
-                pre(ip,targ,gi,rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
-                pre(ip,targ,gi,rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
-                dec(ip,targ,gi,rt,(it-1)*NC+j,:) = qq.decision;
+              % Generate intervention schedules for all trials
+              if ip==1 % Intervention during CS+ training only
+                intrvn_schedule(1:nt/3) = intrvn_amp(gi) * ones(nt/3,1);
+              elseif ip==2 % Intervention during both CS+ training and CS-
+                intrvn_schedule(1:2*nt/3) = intrvn_amp(gi) * ones(2*nt/3,1);
+              elseif ip==3 % Intervention during test only
+                intrvn_schedule((2*nt/3 + 1):nt) = intrvn_amp(gi) * ones(nt/3,1);
+              elseif ip==4 % Intervention during both CS+, CS- and testing
+                intrvn_schedule = intrvn_amp(gi) * ones(nt,1);
               end;
-              clear intrvn_schedule rew q;
+              % Generate reward schedule
+              rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
+              % Run model
+              q = mb_mv_conditioning((it-1)*NC+labindex,rew,1.25e-2,'intervene_id',intrvn_id(targ),mod(gi,2),intrvn_schedule);
             end;
-						fprintf('rt: %d/%d,     ip: %d/%d,     targ: %d/%d,     gi: %d/%d\n',rt,nrt,ip,nip,targ,ntarg,gi,ngi);
+            for j=1:min(NC,nrep-(it-1)*NC)
+              qq = q{j};
+              pre(ip,targ,gi,rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
+              pre(ip,targ,gi,rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
+              dec(ip,targ,gi,rt,(it-1)*NC+j,:) = qq.decision;
+            end;
+            clear intrvn_schedule rew q;
           end;
-        end;                
+          fprintf('rt: %d/%d,     ip: %d/%d,     targ: %d/%d,     gi: %d/%d\n',rt,nrt,ip,nip,targ,ntarg,gi,ngi);
+        end;
       end;
     end;
-    toc
-		
-    % Run controls
-		tic;
-    for rt=1:2 % Don't run controls for experiments with no reinforcement
-      for it=1:nit
-        spmd(min(NC,nrep-(it-1)*NC))
-          % Generate reward schedule
-          rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
-          % Run model
-          q = mb_mv_conditioning((it-1)*NC+labindex,rew,0.5*2.5e-2);
-        end;
-        for j=1:min(NC,nrep-(it-1)*NC)
-          qq = q{j};
-          cpre(rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
-          cpre(rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
-          cdec(rt,(it-1)*NC+j,:) = qq.decision;
-        end;
-        clear rew q;
-      end;
-    end;
-		toc
-    save('associative_conditioning_data_for_MV_model.mat','pre','dec','cpre','cdec');
   end;
+  toc
+  
+  % Run controls
+  tic;
+  for rt=1:2 % Don't run controls for experiments with no reinforcement
+    for it=1:nit
+      spmd(min(NC,nrep-(it-1)*NC))
+        % Generate reward schedule
+        rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
+        % Run model
+        q = mb_mv_conditioning((it-1)*NC+labindex,rew,0.5*2.5e-2);
+      end;
+      for j=1:min(NC,nrep-(it-1)*NC)
+        qq = q{j};
+        cpre(rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
+        cpre(rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
+        cdec(rt,(it-1)*NC+j,:) = qq.decision;
+      end;
+      clear rew q;
+    end;
+  end;
+  toc
+  save('associative_conditioning_data_for_MV_model.mat','pre','dec','cpre','cdec');
 end;
 
 if flag==9
   %%%%
   %%%% Generate associative conditioning experiment data for VS-lambda model
   %%%%
-  if nargin>1
-    rundataflag = varargin{1};
-  end;
   
   % # RNG seeds
   nrep = 1000;
   
-  if rundataflag
-%     % MacBook
-%     % Setup parallel pool
-%     p = parcluster;
-%     NC = min(nrep,p.NumWorkers - 1);
-%     p = matlabpool('size');
-%     if p<1
-%       matlabpool(NC);
-%     else
-%       matlabpool close force local;
-%       matlabpool(NC);
-%     end;
-		% Office Linux
-		% Setup parallel pool
-		p = gcp('nocreate');
-		NC = min(nrep,7);
-		if isempty(p)
-			pp = parpool(NC);
-		else
-			if p.NumWorkers~=NC
-				delete(p);
-				pp = parpool(NC);
-			end;
-		end;
+  %     % MacBook
+  %     % Setup parallel pool
+  %     p = parcluster;
+  %     NC = min(nrep,p.NumWorkers - 1);
+  %     p = matlabpool('size');
+  %     if p<1
+  %       matlabpool(NC);
+  %     else
+  %       matlabpool close force local;
+  %       matlabpool(NC);
+  %     end;
+  % Office Linux
+  % Setup parallel pool
+  p = gcp('nocreate');
+  NC = min(nrep,7);
+  if isempty(p)
+    pp = parpool(NC);
+  else
+    if p.NumWorkers~=NC
+      delete(p);
+      pp = parpool(NC);
+    end;
   end;
-  
+
   % Init params
   nip = 4; % # intervention protocols (intervene during training/testing/both)
   ntarg = 4; % # target neurons
@@ -623,76 +611,74 @@ if flag==9
   intrvn_amp = [0.1 5];
   rew_amp = [-1 1 0];
   
-  if rundataflag    
-    % Allocate memory for interventions
-    pre = zeros(nip,ntarg,ngi,nrt,nrep,nt,2); % Value predictions (m+ - m-)
-    dec = zeros(nip,ntarg,ngi,nrt,nrep,nt); % Decisions
-    % Allocate memory for controls
-    cpre = zeros(nrt,nrep,nt,2); % Value predictions (m+ - m-)
-    cdec = zeros(nrt,nrep,nt); % Decisions
-    
-    tic;
-    % Run interventions
-    for rt=1:nrt
-      for ip=1:nip
-        for targ=1:ntarg
-          for gi=1:ngi
-            for it=1:nit
-              spmd(min(NC,nrep-(it-1)*NC))
-                if gi==1
-                  intrvn_schedule = ones(nt,1);
-                elseif gi==2
-                  intrvn_schedule = zeros(nt,1);
-                end;
-                if ip==1 % Intervention during CS+ training only
-                  intrvn_schedule(1:nt/3) = intrvn_amp(gi) * ones(nt/3,1);
-                elseif ip==2 % Intervention during both CS+ training and CS-
-                  intrvn_schedule(1:2*nt/3) = intrvn_amp(gi) * ones(2*nt/3,1);
-                elseif ip==3 % Intervention during test only
-                  intrvn_schedule((2*nt/3 + 1):nt) = intrvn_amp(gi) * ones(nt/3,1);
-                elseif ip==4 % Intervention during both CS+, CS- and testing
-                  intrvn_schedule = intrvn_amp(gi) * ones(nt,1);
-                end;
-                rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
-                q = mb_vs_conditioning((it-1)*NC+labindex,rew,5e-2,'intervene_id',intrvn_id(targ),mod(gi,2),intrvn_schedule);
+  % Allocate memory for interventions
+  pre = zeros(nip,ntarg,ngi,nrt,nrep,nt,2); % Value predictions (m+ - m-)
+  dec = zeros(nip,ntarg,ngi,nrt,nrep,nt); % Decisions
+  % Allocate memory for controls
+  cpre = zeros(nrt,nrep,nt,2); % Value predictions (m+ - m-)
+  cdec = zeros(nrt,nrep,nt); % Decisions
+  
+  tic;
+  % Run interventions
+  for rt=1:nrt
+    for ip=1:nip
+      for targ=1:ntarg
+        for gi=1:ngi
+          for it=1:nit
+            spmd(min(NC,nrep-(it-1)*NC))
+              if gi==1
+                intrvn_schedule = ones(nt,1);
+              elseif gi==2
+                intrvn_schedule = zeros(nt,1);
               end;
-              for j=1:min(NC,nrep-(it-1)*NC)
-                qq = q{j};
-                pre(ip,targ,gi,rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
-                pre(ip,targ,gi,rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
-                dec(ip,targ,gi,rt,(it-1)*NC+j,:) = qq.decision;
+              if ip==1 % Intervention during CS+ training only
+                intrvn_schedule(1:nt/3) = intrvn_amp(gi) * ones(nt/3,1);
+              elseif ip==2 % Intervention during both CS+ training and CS-
+                intrvn_schedule(1:2*nt/3) = intrvn_amp(gi) * ones(2*nt/3,1);
+              elseif ip==3 % Intervention during test only
+                intrvn_schedule((2*nt/3 + 1):nt) = intrvn_amp(gi) * ones(nt/3,1);
+              elseif ip==4 % Intervention during both CS+, CS- and testing
+                intrvn_schedule = intrvn_amp(gi) * ones(nt,1);
               end;
-              clear intrvn_schedule rew q;
+              rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
+              q = mb_vs_conditioning((it-1)*NC+labindex,rew,5e-2,'intervene_id',intrvn_id(targ),mod(gi,2),intrvn_schedule);
             end;
-            fprintf('rt: %d/%d,     ip: %d/%d,     targ: %d/%d,     gi: %d/%d\n',rt,nrt,ip,nip,targ,ntarg,gi,ngi);
+            for j=1:min(NC,nrep-(it-1)*NC)
+              qq = q{j};
+              pre(ip,targ,gi,rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
+              pre(ip,targ,gi,rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
+              dec(ip,targ,gi,rt,(it-1)*NC+j,:) = qq.decision;
+            end;
+            clear intrvn_schedule rew q;
           end;
+          fprintf('rt: %d/%d,     ip: %d/%d,     targ: %d/%d,     gi: %d/%d\n',rt,nrt,ip,nip,targ,ntarg,gi,ngi);
         end;
       end;
     end;
-    toc
-    
-    % Run controls
-    tic;
-    for rt=1:2 % Don't run controls for experiments with no reinforcement
-      for it=1:nit
-        spmd(min(NC,nrep-(it-1)*NC))
-          % >>> reward schedule needs rng seed, ID should =12
-          rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
-          q = mb_vs_conditioning((it-1)*NC+labindex,rew,5e-2);
-        end;
-        for j=1:min(NC,nrep-(it-1)*NC)
-          qq = q{j};
-          cpre(rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
-          cpre(rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
-          cdec(rt,(it-1)*NC+j,:) = qq.decision;
-        end;
-        clear rew q;
-      end;
-    end;
-    toc
-    
-    save('associative_conditioning_data_for_VS_model.mat','pre','dec','cpre','cdec');
   end;
+  toc
+  
+  % Run controls
+  tic;
+  for rt=1:2 % Don't run controls for experiments with no reinforcement
+    for it=1:nit
+      spmd(min(NC,nrep-(it-1)*NC))
+        % >>> reward schedule needs rng seed, ID should =12
+        rew = mb_reward_schedules(12,(it-1)*NC+labindex,0.1,nt,2,rew_amp(rt));
+        q = mb_vs_conditioning((it-1)*NC+labindex,rew,5e-2);
+      end;
+      for j=1:min(NC,nrep-(it-1)*NC)
+        qq = q{j};
+        cpre(rt,(it-1)*NC+j,:,1) = qq.map(:,1) - qq.mav(:,1);
+        cpre(rt,(it-1)*NC+j,:,2) = qq.map(:,2) - qq.mav(:,2);
+        cdec(rt,(it-1)*NC+j,:) = qq.decision;
+      end;
+      clear rew q;
+    end;
+  end;
+  toc
+  
+  save('associative_conditioning_data_for_VS_model.mat','pre','dec','cpre','cdec');
 end;
 
 if flag==10
@@ -1227,7 +1213,7 @@ if flag==15
   rew = mb_reward_schedules(3,seed,0,250,nstim,2,10);
   rew(1:50,:) = [];
   % Run model
-  q = mb_mv_b(1,seed,50,rew,1e-3,'no',nstim);
+  q = mb_mv_b(1,seed,50,rew,1e-3,nstim);
   
   %%% Plot panel d
   %%% Each data point: reward prediction contribution from a single KC

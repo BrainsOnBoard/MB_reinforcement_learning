@@ -1,7 +1,9 @@
-function out = mb_mv_b(gamma,seed,nt,rs_flag,epskm,varargin)
+function out = mb_mv_b(gamma,seed,nt,rs_flag,epskm,no)
 %
 % Mixed valence MB model. Same as mb_mv_a, but modified so that predictions 
-% are updated for all cues on each trial.
+% are updated for all cues on each trial in order to examine contributions
+% to reward predictions from each single KC. There is no decision making in
+% this verion of the model.
 %
 % Inputs:
 %    gamma - KC->DAN synaptic weight
@@ -23,7 +25,6 @@ rng(seeds(seed));
 r = rs_flag;
 
 %%% Network setup
-no = 2; % # cues
 nk = no * 10; % # KCs
 sparseness = 1 / no; % KC sparseness
 % Softmax temperature
