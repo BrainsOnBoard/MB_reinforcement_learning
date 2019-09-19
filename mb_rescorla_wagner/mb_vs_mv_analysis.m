@@ -562,7 +562,7 @@ if flag==8
     end;
   end;
   toc
-  save('associative_conditioning_data_for_MV_model.mat','pre','dec','cpre','cdec');
+  save([fpath 'associative_conditioning_data_for_MV_model.mat'],'pre','dec','cpre','cdec');
 end;
 
 if flag==9
@@ -678,7 +678,7 @@ if flag==9
   end;
   toc
   
-  save('associative_conditioning_data_for_VS_model.mat','pre','dec','cpre','cdec');
+  save([fpath 'associative_conditioning_data_for_VS_model.mat'],'pre','dec','cpre','cdec');
 end;
 
 if flag==10
@@ -689,8 +689,8 @@ if flag==10
   %%%%
   
   m = cell(2,1);
-  m{1} = load('associative_conditioning_data_for_MV_model.mat');
-	m{2} = load('associative_conditioning_data_for_VS_model.mat');
+  m{1} = load([fpath 'associative_conditioning_data_for_MV_model.mat']);
+  m{2} = load([fpath 'associative_conditioning_data_for_VS_model.mat']);
   nrep = 1000; % # repeat runs of the simulation per condition
   nip = 4; % # intervention protocols (intervene during training/testing/both)
   ntarg = 4; % # target neurons
@@ -767,7 +767,7 @@ if flag==10
         end;end;end;end;
   
   % Read in experimental PI measures from Excel sheet
-	z = xlsread('associative_conditioning_intervention_data.xlsx','experiment_PIs','A3:AG167');
+	z = xlsread([fpath 'supptable2.xlsx'],'A3:AG167');
 
   testtimes = z(:,end);
   z = z(:,[1 30]);
