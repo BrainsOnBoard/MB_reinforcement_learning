@@ -1,14 +1,21 @@
-function mb_vs_mv_analysis(flag)
+function mb_vs_mv_analysis(flag,varargin)
 %
 % MB_VS_MV_ANALYSIS(FLAG)
 %
 % Analyse data for Bennett et al. 2019.
 % Valence specific (VS) and mixed valence (MV) MB models are analysed.
-
+%
+% 
 %%%
 %%% Output directory, where plots will be saved
 %%%
 fpath = '<directory name>';
+
+if nargin>1
+  % If oldflag = 1, use R2012 version of parallel computing
+  % If oldflag = 0, use R2018 version of parallel computing  
+  oldflag = varargin{1};
+end;
 
 %%%%
 %%%% Colours for plotting
@@ -453,28 +460,27 @@ if flag==8
   % # RNG seeds
   nrep = 1000;
  
-%     % MacBook
-%     % Setup parallel pool
-%     p = parcluster;
-%     NC = min(nrep,p.NumWorkers - 1);
-%     p = matlabpool('size');
-%     if p<1
-%       matlabpool(NC);
-%     else
-%       matlabpool close force local;
-%       matlabpool(NC);
-%     end;
-
-  % Office Linux
   % Setup parallel pool
-  p = gcp('nocreate');
-  NC = min(nrep,7);
-  if isempty(p)
-    pp = parpool(NC);
+   if oldflag    
+     p = parcluster;
+     NC = min(nrep,p.NumWorkers - 1);
+     p = matlabpool('size');
+     if p<1
+       matlabpool(NC);
+     else
+       matlabpool close force local;
+       matlabpool(NC);
+     end;
   else
-    if p.NumWorkers~=NC
-      delete(p);
+    p = gcp('nocreate');
+    NC = min(nrep,7);
+    if isempty(p)
       pp = parpool(NC);
+    else
+      if p.NumWorkers~=NC
+        delete(p);
+        pp = parpool(NC);
+      end;
     end;
   end;
   
@@ -573,27 +579,27 @@ if flag==9
   % # RNG seeds
   nrep = 1000;
   
-  %     % MacBook
-  %     % Setup parallel pool
-  %     p = parcluster;
-  %     NC = min(nrep,p.NumWorkers - 1);
-  %     p = matlabpool('size');
-  %     if p<1
-  %       matlabpool(NC);
-  %     else
-  %       matlabpool close force local;
-  %       matlabpool(NC);
-  %     end;
-  % Office Linux
-  % Setup parallel pool
-  p = gcp('nocreate');
-  NC = min(nrep,7);
-  if isempty(p)
-    pp = parpool(NC);
+   % Setup parallel pool
+   if oldflag    
+     p = parcluster;
+     NC = min(nrep,p.NumWorkers - 1);
+     p = matlabpool('size');
+     if p<1
+       matlabpool(NC);
+     else
+       matlabpool close force local;
+       matlabpool(NC);
+     end;
   else
-    if p.NumWorkers~=NC
-      delete(p);
+    p = gcp('nocreate');
+    NC = min(nrep,7);
+    if isempty(p)
       pp = parpool(NC);
+    else
+      if p.NumWorkers~=NC
+        delete(p);
+        pp = parpool(NC);
+      end;
     end;
   end;
 
@@ -1008,30 +1014,30 @@ if flag==13
   %%%% as a function of the number of cues (from 2-200).
   %%%%
   
-  %%% Setup parallel pool
-  % MATLAB R2012
+  % Setup parallel pool
   nrep = 100;
-  p = parcluster;
-  NC = min(nrep,p.NumWorkers - 1);
-  p = matlabpool('size');
-  if p<1
-    matlabpool(NC);
+   if oldflag    
+     p = parcluster;
+     NC = min(nrep,p.NumWorkers - 1);
+     p = matlabpool('size');
+     if p<1
+       matlabpool(NC);
+     else
+       matlabpool close force local;
+       matlabpool(NC);
+     end;
   else
-    matlabpool close force local;
-    matlabpool(NC);
+    p = gcp('nocreate');
+    NC = min(nrep,7);
+    if isempty(p)
+      pp = parpool(NC);
+    else
+      if p.NumWorkers~=NC
+        delete(p);
+        pp = parpool(NC);
+      end;
+    end;
   end;
-  %     % MATLAB R2018
-  %     % Setup parallel pool
-  %     p = gcp('nocreate');
-  %     NC = min(nrep,7);
-  %     if isempty(p)
-  %       pp = parpool(NC);
-  %     else
-  %       if p.NumWorkers~=NC
-  %         delete(p);
-  %         pp = parpool(NC);
-  %       end;
-  %     end;
   
   % Initialise parameters
   nstim = [2 3 4 6 8 12 16 24 32 48 64 96 128 200]; % # stimuli to test
@@ -1132,30 +1138,30 @@ if flag==14
   %%%% noise in the rewards and the # of cues.
   %%%%
   
-  %%% Setup parallel pool
-  % Matlab R2012
   nrep = 100;
-  p = parcluster;
-  NC = min(nrep,p.NumWorkers - 1);
-  p = matlabpool('size');
-  if p<1
-    matlabpool(NC);
+  % Setup parallel pool
+   if oldflag    
+     p = parcluster;
+     NC = min(nrep,p.NumWorkers - 1);
+     p = matlabpool('size');
+     if p<1
+       matlabpool(NC);
+     else
+       matlabpool close force local;
+       matlabpool(NC);
+     end;
   else
-    matlabpool close force local;
-    matlabpool(NC);
+    p = gcp('nocreate');
+    NC = min(nrep,7);
+    if isempty(p)
+      pp = parpool(NC);
+    else
+      if p.NumWorkers~=NC
+        delete(p);
+        pp = parpool(NC);
+      end;
+    end;
   end;
-  %     % MATLAB R2018
-  %     % Setup parallel pool
-  %     p = gcp('nocreate');
-  %     NC = min(nrep,7);
-  %     if isempty(p)
-  %       pp = parpool(NC);
-  %     else
-  %       if p.NumWorkers~=NC
-  %         delete(p);
-  %         pp = parpool(NC);
-  %       end;
-  %     end;
   
   nit = floor(nrep/NC) + 1; % # iterations of spmd
   
