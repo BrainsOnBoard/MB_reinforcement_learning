@@ -19,7 +19,7 @@ Code Contents:
 Data Contents:
  - associative_conditioning_data_for_VS_model.mat: simulated VS_lambda model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8)
  - associative_conditioning_data_for_MV_model.mat: simulated MV model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8) 
- - associative_conditioning_intervention_data.xlsx: collated performance indeces and test statistics for all experimental data used in the study.
+ - supptable2.xlsx: collated performance indeces and test statistics for all experimental data used in the study.
  
 Dependencies:
  - All code has been tested using either MATLAB R2012a on OS X 10.7, or MATLAB R2018b on Ubuntu 18.04 LTS. Certain subroutines in 
