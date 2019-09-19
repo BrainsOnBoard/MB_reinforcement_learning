@@ -6,15 +6,16 @@ Code Contents:
  - mb_vs.m: code to run multiple alternative forced choice simulations using the VS/VSlambda model
  - mb_mv_a.m: code to run multiple alternative forced choice simulations using the MV model with overlapping cue representations.
  - mb_mv_b.m: code to run multiple alternative forced choice simulations using the MV model with overlapping cue representations, in order 
- to examine how each single Kenyon cell contributes to the reward prediction for a given cue.
+   to examine how each single Kenyon cell contributes to the reward prediction for a given cue.
  - mb_mv_c.m: code to run multiple alternative forced choice simulations using the MV model with non-overlapping cue representations and 
- perfect plasticity.
+   perfect plasticity.
  - mb_mv_d.m: code to run multiple alternative forced choice simulations using the MV model with non-overlapping cue representations.
  - mb_vs_conditioning.m: code to run associative conditioning simulations using the VSlambda model
  - mb_mv_conditioning.m: code to run associative conditioning simulations using the MV model
  - mb_reward_schedules.m: code to generate a specific and parameterised reward schedule for use in the simulations
  - mb_vs_mv_analysis.m: code to run all data generation and data analysis.
- - utils/: a folder containing variety of MATLAB functions, some of which are called on for e.g. filtering.
+ - zmy_utils.zip: a zipped package of utility scripts that are called upon for processing and plotting data. Please unzip this file and place all
+   scripts in the Matlab path.
  
 Data Contents:
  - associative_conditioning_data_for_VS_model.mat: simulated VS_lambda model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8)
@@ -28,6 +29,7 @@ Dependencies:
  initialised.
 
 Example usage:
+ - First, you must place all .mat files in a directory that is included in the Matlab path, or update the path to include them.
  - mb_vs_mv_analysis.m is the main wrapper from which all results in the paper are generated.
  - Before you run mb_vs_mv_analysis, modify the string that is assigned to the variable ‘fpath’. This is the directory in which all 
  generated data, analyses, and plots will be saved. It is also the directory from which any data will be read in for analysis. 
