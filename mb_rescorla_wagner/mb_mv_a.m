@@ -18,8 +18,9 @@ intervene_id = 0;
 choose1 = false;
 no = 2;
 period = 100;
-nk = 2000; % # KCs
-
+nk = 20; % # KCs
+lambda = 0;
+pr = 'eq7';
 %%% Update default parameters with custom options
 if nargin>5
   j = 1;
@@ -49,6 +50,12 @@ if nargin>5
       % If using periodic reward schedule: specifiy the period
       period = varargin{j+1};
       j = j+2;
+    elseif strcmp(varargin{j},'lambda')
+      % If using periodic reward schedule: specifiy the period
+      lambda = varargin{j+1};
+      j = j+2;
+    elseif strcmp(varargin{j},'plasticity_rule')
+       pr = varargin{j+1}; j = j + 2; % Which learning rule to use
     else
       error('???MB_MV_A: Optional arguments not recognised.');
     end;
@@ -72,7 +79,7 @@ else % if using a pregenerated reward schedule
 end;
 
 %%% Network setup
-sparseness = 0.05; % KC sparseness
+sparseness = 0.5; % KC sparseness
 % Softmax temperature
 T = 0.2;
 beta = 1 / T;
@@ -92,8 +99,8 @@ wmavdav = 1; % M- -> D-
 %%% Generate KC responses to cues
 s = zeros(nk,no);
 for j=1:no
-  s(:,j) = double(rand(nk,1)<sparseness);
-%   s(floor((j-1)*sparseness*nk)+1:floor(j*sparseness*nk),j) = 1;
+%   s(:,j) = double(rand(nk,1)<sparseness);
+  s(floor((j-1)*sparseness*nk)+1:floor(j*sparseness*nk),j) = 1;
   s(:,j) = s(:,j) / sum(s(:,j)) * 10;    
 end;
 
@@ -113,7 +120,7 @@ for j=1:nt  % Loop over trials
   % Compute MBON firing rates and reward predictions (mdiff)
   for stim=1:no
     map(j,stim) = wkmap(:,:,j) * s(:,stim);
-    mav(j,stim) = wkmav(:,:,j) * s(:,stim);        
+    mav(j,stim) = wkmav(:,:,j) * s(:,stim);
         
     % For "genetic" interventions
     if any(intervene_id==1)
@@ -172,8 +179,13 @@ for j=1:nt  % Loop over trials
   
   % Update KC->MBON weights (except on last trial)
   if j<nt
-    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
-    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));    
+    if strcmp(pr,'eq7')
+      wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
+      wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+    elseif strcmp(pr,'eq8')
+      wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (wkdav * s(:,decision(j)) - dav(j)));
+      wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (wkdap * s(:,decision(j)) - dap(j)));
+    end;
   end;
   
   % Update summed reward and RPE
