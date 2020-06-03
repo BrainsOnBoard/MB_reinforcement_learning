@@ -1,5 +1,5 @@
 This folder contains all code needed to produce the simulation results and the data analyses for the paper:
-Bennett JEM, Philippides A, Nowotny T (2019), Learning with reward prediction errors in a model of the Drosophila mushroom body, 
+Bennett JEM, Philippides A, Nowotny T (2019), Learning with reinforcement prediction errors in a model of the Drosophila mushroom body, 
 JOURNAL VOL, PAGES
 
 Code Contents:
@@ -12,6 +12,9 @@ Code Contents:
  - mb_mv_d.m: code to run multiple alternative forced choice simulations using the MV model with non-overlapping cue representations.
  - mb_vs_conditioning.m: code to run associative conditioning simulations using the VSlambda model
  - mb_mv_conditioning.m: code to run associative conditioning simulations using the MV model
+ - mb_vs_conditioning_fels.m: code to simulate the Felsenberg et al. (2017, 2018) re-evaluation experiments using the VSlambda model
+ - mb_mv_conditioning_fels.m: code to simulate the Felsenberg et al. (2017, 2018) re-evaluation experiments using the MV model
+ - mb_mv_blocking.m: code to run simulate blocking experiments using the MV model.
  - mb_reward_schedules.m: code to generate a specific and parameterised reward schedule for use in the simulations
  - mb_vs_mv_analysis.m: code to run all data generation and data analysis.
  - zmy_utils.zip: a zipped package of utility scripts that are called upon for processing and plotting data. Please unzip this file and place all
@@ -19,7 +22,8 @@ Code Contents:
  
 Data Contents:
  - associative_conditioning_data_for_VS_model.mat: simulated VS_lambda model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8)
- - associative_conditioning_data_for_MV_model.mat: simulated MV model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8) 
+ - associative_conditioning_data_for_MV_model_eq7.mat: simulated MV model data for Fig. 5 (used for analyses in mb_vs_mv_analysis.m under flag==8) 
+UPDATE - associative_conditioning_data_for_MV_model_eq8.mat: simulated MV model data for Supp. Fig. 7 (used for analyses in mb_vs_mv_analysis.m under flag==8) 
  - supptable2.xlsx: collated performance indeces and test statistics for all experimental data used in the study.
  
 Dependencies:
