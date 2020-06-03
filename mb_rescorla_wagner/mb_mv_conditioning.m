@@ -17,21 +17,28 @@ rng(seeds(seed));
 nk = 100;
 no = 2;
 sparseness = 0.1;
-nt = 120;30;
+nt = 30;
 gamma = 1;
 
 %%% Process options
-intervene_id = 0;
+intervene_id = 0; % Default: no intervention
+pr = 'eq7'; % Default: Eq. 7 learning rule
 if nargin>3
-  if strcmp(varargin{1},'intervene_id')
-    intervene_id = varargin{2}; % Which cell type
-    intrvn_type = varargin{3}; % 1: multiplicative; 0: additive
-    if isscalar(varargin{4})
-      intrvn_strength = ones(nt,1)*varargin{4}; % Strength of intervention
-    else
-      intrvn_strength = varargin{4}; % Strength of intervention
+  j = 1;
+  while j<=numel(varargin)
+    if strcmp(varargin{j},'intervene_id')
+      intervene_id = varargin{j+1}; % Which cell type
+      intrvn_type = varargin{j+2}; % 1: multiplicative; 0: additive
+      if isscalar(varargin{j+3})
+        intrvn_strength = ones(nt,1)*varargin{j+3}; % Strength of intervention
+      else
+        intrvn_strength = varargin{j+3}; % Strength of intervention
+      end;
+      j = j + 4;
+    elseif strcmp(varargin{j},'plasticity_rule')
+       pr = varargin{j+1}; j = j + 2; % Which learning rule to use
     end;
-  end;    
+  end;
 end;
 
 %%%% Reward schedules
@@ -40,8 +47,8 @@ r = rewards;
 % Init synaptic weights
 wkmap = zeros(1,nk,nt); % KC->M+
 wkmav = zeros(1,nk,nt); % KC->M-
-wkmap(:,:,1) = 0.5*rand(1,nk);
-wkmav(:,:,1) = 0.5*rand(1,nk);
+wkmap(:,:,1) = 0.1*rand(1,nk);
+wkmav(:,:,1) = 0.1*rand(1,nk);
 wkdap = gamma * ones(1,nk);  % KC->D+
 wkdav = gamma * ones(1,nk);  % KC->D-
 wmapdap = 1; % M+->D+
@@ -57,9 +64,8 @@ beta = 1 / T;
 s = zeros(nk,no);
 for j=1:no
   s(:,j) = double(rand(nk,1)<sparseness);
-  s(:,j) = s(:,j) / sum(s(:,j)) * 10;  
+  s(:,j) = s(:,j) / sum(s(:,j)) * 10;    
 end;
-
 %%% Allocate memory
 dap = zeros(nt,1);
 dav = zeros(nt,1);
@@ -80,7 +86,8 @@ for j=1:(nt/3)
   % Compute MBON firing rates
   stim = 1;
   map(j,stim) = wkmap(:,:,j) * s(:,stim);
-  mav(j,stim) = wkmav(:,:,j) * s(:,stim);
+%   mav(j,stim) = wkmav(:,:,j) * s(:,stim);
+  mav(j,stim) = max(0,wkmav(:,:,j) * s(:,stim) - map(j,stim));
   
   % Apply intervention to MBONs (if any)
   if any(intervene_id==1)
@@ -113,8 +120,13 @@ for j=1:(nt/3)
   end;
   
   % Update KC->MBON synaptic weights
-  wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
-  wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+  if strcmp(pr,'eq7')
+    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
+    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+  elseif strcmp(pr,'eq8')
+    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (wkdav * s(:,decision(j)) - dav(j)));
+    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (wkdap * s(:,decision(j)) - dap(j)));
+  end;
 end;
 
 %%%
@@ -157,8 +169,13 @@ for j=(nt/3 + 1):(2*nt/3)
   end;  
   
   % Update KC->MBON synaptic weights
-  wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
-  wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+if strcmp(pr,'eq7')
+    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
+    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+  elseif strcmp(pr,'eq8')
+    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (wkdav * s(:,decision(j)) - dav(j)));
+    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (wkdap * s(:,decision(j)) - dap(j)));
+  end;
 end;
 
 %%%
@@ -202,8 +219,13 @@ for j=(2*nt/3+1):nt
   
   % Update KC->MBON synaptic weights (except on last trial)
   if j<nt
-    wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
-    wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+    if strcmp(pr,'eq7')
+      wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (dap(j) - dav(j)));
+      wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (dav(j) - dap(j)));
+    elseif strcmp(pr,'eq8')
+      wkmap(:,:,j+1) = max(0,wkmap(:,:,j) + epskm * s(:,decision(j))' .* (wkdav * s(:,decision(j)) - dav(j)));
+      wkmav(:,:,j+1) = max(0,wkmav(:,:,j) + epskm * s(:,decision(j))' .* (wkdap * s(:,decision(j)) - dap(j)));
+    end;
   end;
 end;
 
