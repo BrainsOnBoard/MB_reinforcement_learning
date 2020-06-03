@@ -8,7 +8,6 @@ function out = mb_vs_conditioning(seed,rewards,epskm,varargin)
 %          3 - dap
 %          4 - dav
 
-
 %%%% Set defaults for optional parameters
 flag_plasticity_rule = 1;
 intervene_id = 0;
@@ -105,8 +104,6 @@ for j=1:(nt/3)
   
   dap(j) = max(0,wkdap * s(:,decision(j)) + wmdap * mav(j,decision(j)) + max(0,r(j,decision(j))));
   dav(j) = max(0,wkdav * s(:,decision(j)) + wmdav * map(j,decision(j)) - min(0,r(j,decision(j))));  
-%   dap(j) = max(0,wkdap * s(:,decision(j)) + 2*wmdap * mav(j,decision(j)) + r(j,decision(j)));
-%   dav(j) = max(0,wkdav * s(:,decision(j)) + 2*wmdav * map(j,decision(j)) - r(j,decision(j)));
     
   % Apply intervention (if any)
   if any(intervene_id==3)
