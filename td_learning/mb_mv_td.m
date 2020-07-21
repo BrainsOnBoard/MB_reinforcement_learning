@@ -11,7 +11,7 @@ function out = mb_mv_td3(seed,gamma,ntrial,nt,discount,epskm,phi,varargin)
 %    epskm - learning rate
 %
 % Outputs:
-%  out - struct containing numerous fields (see bottom of script)
+%  out - struct containing numerous fields (see bottom of script) 
 
 %%% Set defaults for optional parameters
 policy = 'on';
