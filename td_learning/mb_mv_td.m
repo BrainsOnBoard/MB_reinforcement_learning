@@ -1,15 +1,17 @@
-function out = mb_mv_td3(seed,gamma,ntrial,nt,discount,epskm,phi,varargin)
+function out = mb_mv_td3(seed,gamma,ntrial,nt,discount,epskm,varargin)
 %
 % As MB_MV_TD2, but with shibire/dTrpA1-like interventions to MBONs/DANs
 %
 % Inputs:
-%    gamma - KC->DAN synaptic weight
 %     seed - an integer, N, that selects a prime number to seed the random
 %            number generator
+%    gamma - KC->DAN synaptic weight
+%   ntrial - number of trials (i.e. training episodes)
 %       nt - # trials
-%  rs_flag - reward schedule ID
+% discount - discount factor in the range [0,1]
 %    epskm - learning rate
-%
+% varargin - See below for optional arguments (line 51)
+
 % Outputs:
 %  out - struct containing numerous fields (see bottom of script) 
 
@@ -26,23 +28,16 @@ pap.stile = 25; % mm
 pap.speed = 12.5; % mm/s
 pap.ttrial = 300; % s
 nx = 20; 
-% %%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%
-% nx=50;
-% %q
-%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%
 ny = 20; 
+nx2 = ceil(nx/2);
+ny2 = ceil(ny/2);
 nx14 = ceil(nx/4);
 ny14 = ceil(ny/4);
 nx34 = ceil(nx*3/4);
 ny34 = ceil(ny*3/4);
 nx116 = ceil(nx/16);
 ny116 = ceil(ny/16);
-% nk = nx*ny;
-% np = 50;
+
 % Compute a scaling factor for time, so that an equivalent trial duration
 % is used in this model when compared to the trial duration in Ofstad et
 % al. The basis for the scaling factor is that, if a fly can walk the width
@@ -99,7 +94,6 @@ if nargin>6
 end;
 
 if d1flag, ny = 1; nt = nx; end;
-nk = nx*ny;
 
 %%% Init random # stream
 seeds = 10000:65000;
@@ -118,6 +112,7 @@ tau_el = 15 * tscale; if d1flag, tau_el = 1; end;
 dec_el = 1 - 1/tau_el;
 
 %%% Initialise synaptic weights
+nk = nx*ny; % # of KCs
 if memsave
   wkmap = 0.1*rand(1,nk);
   wkmav = 0.1*rand(1,nk);
@@ -141,8 +136,6 @@ wmapdav = 1; % M+ -> D-
 wmavdav = 1; % M- -> D-
 
 % Reward location
-% rloc = {9:12; 9:12}; if d1flag, rloc = {1 ;(nx-1):nx}; end; % FOR 1D
-% rloc = {14:17; 14:17}; if d1flag, rloc = {1 ;(nx-1):nx}; end; % FOR 1D
 rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
 rlocall = zeros(2,length(rloc{1})*length(rloc{2}));
 for j=1:length(rloc{1})
@@ -151,29 +144,16 @@ for j=1:length(rloc{1})
     rlocall(2,(j-1)*length(rloc{2}) + k) = rloc{2}(k);
   end;
 end;
-% amp = 10; % Total volume of available reward
 amp = 10; % Total volume of available reward
-% sd = 1; % SD in spatial distribution of reward
-% r = amp * mygaussiann([ny nx],[sd sd],'centre',rloc(1,:)); % rewards
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-x2 = ceil(nx/2); y2 = ceil(ny/2);
-radius = inf;min(x2,y2) + 10;
-[xp yp] = meshgrid((-x2+1):(x2-1),(-y2+1):(y2-1));
-perimamp = -1;
-perim = (xp.^2 + yp.^2) / radius^2 * perimamp;
-perim((xp.^2 + yp.^2)<radius^2) = 0;
+radius = inf;min(nx2,ny2) + 10;
+[xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
 perim = -2;
 r = r - hunger*max(r(:));
-% r(1:15,9)=-10;
 if d1flag, r=zeros(1,nx); r(end) = amp; end;
 out.r = r;
-
-% rr = mygfilter(r,[15 15],[50 50],'replicate');
-% [gx gy] = gradient(rr);
-% o = atan2(gy,gx);
-% do = (1 - mydiffmatrix(2*pi,o(:))/pi).^10;
 
 %%% Generate KC responses to cues
 s = zeros(nk,ny,nx);
@@ -206,41 +186,10 @@ if d1flag, s(:,1,1) = 0; end; % FOR 1D
 %   ss(:,j) = ss(:,j) / sum(ss(:,j)) * 10;
 % end;
 % s = reshape(ss,nk,ny,nx);
+% Add correlations between KCs
 for j=1:nk
   s(j,:,:) = mygfilter(squeeze(s(j,:,:)),[1 1],[20 20],'replicate');
 end;
-% %%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%
-% s = zeros(nk,ny,nx);
-% for j=1:ny
-%   for k=1:nx    
-%     flag = true;
-%     while flag
-% %       s((j-1)*nx+k,j,k) = 1;
-%       s(:,j,k) = double(rand(nk,1) < sparseness);
-%       flag = ~any(s(:,j,k));
-%     end;
-%     s(:,j,k) = s(:,j,k) / sum(s(:,j,k)) * mr;
-%   end;
-% end;
-% if d1flag, s(:,1,1) = 0; end; % FOR 1D
-% 
-% % s(:,1,2:10) = repmat(s(:,1,2),[1,1,9]);
-% ss = zeros(size(s));
-% ss(:,1,21) = s(:,1,21); s(:,1,21) = 0;
-% ss = ss * 4;
-% t=0:(nx-1);
-% ye = exp(-t/2); ye = ye / sum(ye); ye = repmat(ye,[nk,1]); fye = fft(ye,[],2);
-% % ye = zeros(1,nx); ye(1:15)=1; ye = ye / sum(ye); ye = repmat(ye,[nk,1]); fye = fft(ye,[],2);
-% ss(:,1,:) = ifft(fft(squeeze(ss(:,1,:)),[],2) .* fye,[],2);
-% % ss(ss(:,1,21)>0,1,21:35) = ss(ss(:,1,21)>0,1,21:35) + 2;
-% ss(ss(:,1,21)>0,1,21:25) = ss(ss(:,1,21)>0,1,21:25) + 2;
-% s = ss;s + ss;
-% ss = s / max(s(:)) * 0.25;
-% %%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%
 
 %%% Allocate memory
 dap = zeros(nt,ntrial);
@@ -255,10 +204,10 @@ probs = zeros(4,1);
 xx = nan(nt,ntrial);
 yy = nan(nt,ntrial);
 trnt = zeros(ntrial,1); % #time steps per trial
+
 % Init position
 startpos = ones(4,2) * ceil(nx14); 
 if d1flag, startpos = [1 1]; end;
-
 for j=1:ntrial
   yy(1,j) = startpos(mod(j-1,size(startpos,1))+1,1);
   xx(1,j) = startpos(mod(j-1,size(startpos,1))+1,2);
@@ -267,13 +216,6 @@ rew = zeros(nt,ntrial);
 
 %%% Run simulation
 for tr=1:ntrial
-%   %%%%%%%%%%%%%%%%%
-%   %%%%%%%%%%%%%%%%%
-%   %%%%%%%%%%%%%%%%%
-%   s = double(rand(size(ss))<ss) * 4;
-%   %%%%%%%%%%%%%%%%%
-%   %%%%%%%%%%%%%%%%%
-%   %%%%%%%%%%%%%%%%%
   %%% Init trial
   if tr>1
     % Copy synaptic weights from previous trial
@@ -300,14 +242,6 @@ for tr=1:ntrial
     mav(1,tr) = wkmav(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
     go(1,:,tr) = wkgo(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
     nogo(1,:,tr) = wknogo(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
-  end;
-  
-  % For "genetic" interventions
-  if any(intervene_id==1)
-    map(1,tr) = max(0,intrvn_type * map(1,tr) * intrvn_strength(1) + (1-intrvn_type) * (map(1,tr) + intrvn_strength(1)));
-  end;
-  if any(intervene_id==2)
-    mav(1,tr) = max(0,intrvn_type * mav(1,tr) * intrvn_strength(1) + (1-intrvn_type) * (mav(1,tr) + intrvn_strength(1)));
   end;
     
   % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
@@ -383,33 +317,14 @@ for tr=1:ntrial
       nogo(j,:,tr) = wknogo(:,:,j-1,tr) * s(:,yy(j,tr),xx(j,tr));
     end;
     
-    % For "genetic" interventions
-    if any(intervene_id==1)
-      map(j,tr) = max(0,intrvn_type * map(j,tr) * intrvn_strength(j) + (1-intrvn_type) * (map(j,tr) + intrvn_strength(j)));
-    end;
-    if any(intervene_id==2)
-      mav(j,tr) = max(0,intrvn_type * mav(j,tr) * intrvn_strength(j) + (1-intrvn_type) * (mav(j,tr) + intrvn_strength(j)));
-    end;
-    
     rew(j,tr) = r(yy(j,tr),xx(j,tr));
 %     if r(yy(j,tr),xx(j,tr))>0
-%       endtrialflag = true;
-%     end;
-%     if sum(rew(1:j,tr))>9.2
 %       endtrialflag = true;
 %     end;
     
     % Compute DAN firing rates (add strong punishment if failed to reach target)
     dap(j,tr) = max(0,wkdap * s(:,yy(j,tr),xx(j,tr)) - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*double(((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2));
-    dav(j,tr) = max(0,wkdav * s(:,yy(j,tr),xx(j,tr)) - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*double(((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2));
-    
-    % For "genetic" interventions
-    if any(intervene_id==3)
-      dap(j,tr) = max(0,intrvn_type * dap(j,tr) * intrvn_strength(j) + (1-intrvn_type) * (dap(j,tr) + intrvn_strength(j)));
-    end;
-    if any(intervene_id==4)
-      dav(j,tr) = max(0,intrvn_type * dav(j,tr) * intrvn_strength(j) + (1-intrvn_type) * (dav(j,tr) + intrvn_strength(j)));
-    end;
+    dav(j,tr) = max(0,wkdav * s(:,yy(j,tr),xx(j,tr)) - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*double(((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2));    
     
     % Update KC->MBON weights
     if memsave
@@ -418,16 +333,12 @@ for tr=1:ntrial
       wkgo(decision(j-1,tr),:) = max(0,wkgo(decision(j-1,tr),:) + epskm * el' .* (dap(j,tr) - dav(j,tr)));
       wknogo(decision(j-1,tr),:) = max(0,wknogo(decision(j-1,tr),:) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
     else
-      wkmap(:,:,j,tr) = max(0,wkmap(:,:,j-1,tr)*(1-phi) + epskm * el' .* (dap(j,tr) - dav(j,tr)));
-      wkmav(:,:,j,tr) = max(0,wkmav(:,:,j-1,tr)*(1-phi) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
-%       wkmap(:,:,j,tr) = max(0,wkmap(:,:,j-1,tr) + epskm * el' .* (wkdav*s(:,yy(j,tr),xx(j,tr)) - dav(j,tr)));
-%       wkmav(:,:,j,tr) = max(0,wkmav(:,:,j-1,tr) + epskm * el' .* (wkdap*s(:,yy(j,tr),xx(j,tr)) - dap(j,tr)));
+      wkmap(:,:,j,tr) = max(0,wkmap(:,:,j-1,tr) + epskm * el' .* (dap(j,tr) - dav(j,tr)));
+      wkmav(:,:,j,tr) = max(0,wkmav(:,:,j-1,tr) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
       wkgo(:,:,j,tr) = wkgo(:,:,j-1,tr);
       wknogo(:,:,j,tr) = wknogo(:,:,j-1,tr);
       wkgo(decision(j-1,tr),:,j,tr) = max(0,wkgo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dap(j,tr) - dav(j,tr)));
       wknogo(decision(j-1,tr),:,j,tr) = max(0,wknogo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
-%       wkgo(decision(j-1,tr),:,j,tr) = max(0,wkgo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (wkdav*s(:,yy(j,tr),xx(j,tr)) - dav(j,tr)));
-%       wknogo(decision(j-1,tr),:,j,tr) = max(0,wknogo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (wkdap*s(:,yy(j,tr),xx(j,tr)) - dap(j,tr)));
     end;
     
     % If current position is outside the perimeter, move back to previous
@@ -486,7 +397,6 @@ for tr=1:ntrial
     
     % Update eligibility trace
     el = el * dec_el + s(:,yy(j,tr),xx(j,tr)) / tau_el;
-%     plot(el); set(gca,'ylim',[0 0.1]); pause(0.01);
     
     % Report progress
     if progressflag
@@ -498,10 +408,6 @@ for tr=1:ntrial
     trnt(tr) = j;
     % Update time
     j = j + 1;
-%     if j>nt
-%       endtrialflag = true;
-%       j = j - 1;
-%     end;
   end;  
 end;
 
@@ -517,15 +423,8 @@ out.wkmav = wkmav;
 out.wkgo = wkgo;
 out.wknogo = wknogo;
 out.decision = decision;
-% out.r = r;
+out.r = r;
 out.s = s;
-% %%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%
-% out.ss = ss;
-% %%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%
 out.xx = xx;
 out.yy = yy;
 out.nx = nx;
@@ -540,25 +439,33 @@ out.rew = rew;
 % % Rewards obtained as function of time and trials: quick way to see how
 % fast learning took place
 % sr=zeros(q.nt,q.ntrial);for j=1:q.ntrial for k=1:q.nt sr(k,j)=q.r(q.yy(k,j),q.xx(k,j)); end;end;imagesc(sr);
+
 % % Movement along single trial route
 % k=1;imagesc(q.r>(0.5*max(q.r(:))));colormap(1-gray);hold on;n=size(q.xx,1); for j=1:n plot(q.xx(j,k),q.yy(j,k),'o','color',jjet(mod(j-1,64)+1,:)); hold on;pause(0.01); set(gca,'xlim',[0 20],'ylim',[0 20]);end; hold off;
+
 % % All visited locations for each trial, colour coded by trial
 % for j=1:size(q.wkmap,4) plot(q.xx(:,j)+0.5*randn(q.nt,1),q.yy(:,j)+0.5*randn(q.nt,1),'.','color',jjet(ceil(j/size(q.wkmap,4)*64),:)); hold on; pause(0.1); end; hold off;
+
 % % Learning the value function map (2D)
 % for kk=1:size(q.wkmap,4) imagesc(reshape((q.wkmap(1,:,1,kk)-q.wkmav(1,:,1,kk))*reshape(q.s,[q.nk,q.nx*q.ny]),q.ny,q.nx));axis xy; pause(0.01); end;
 % j=1;ch=1; for kk=1:size(q.wkmap,4) imagesc(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),[-1 1]);axis xy; pause(0.1); end;
+
 % % Learning the value function map (1D)
 % j=1;ch=1; for kk=1:5:size(q.wkmap,4) plot(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),'color',[kk/size(q.wkmap,4) 0 (size(q.wkmap,4)-kk)/size(q.wkmap,4)]); pause(0.1); hold on; end;hold off;
+
 % %  DAN-RPE (1D)
 % for kk=1:20:size(q.wkmap,4) plot(q.dap(:,kk)-q.dav(:,kk),'color',[kk/size(q.wkmap,4) 0 (size(q.wkmap,4)-kk)/size(q.wkmap,4)]); pause(0.1); hold on; end;hold off;
+
 % %  Sliding average track history
 % a=zeros(q.ny,q.nx,q.ntrial);for k=1:q.ntrial for j=1:(sum(q.decision(:,k)>0)+1) a(q.yy(j,k),q.xx(j,k),k)=1;end;end; aa=mylwfitends(a,3,20); myplaymov(0,aa(:,:,1:10:end),0.1,1-gray,[0 1]);
 % % Learning the value function map
 % v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkmap(1,:,1,j)-q.wkmav(1,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
+
 % % Learning the action value map
 % act=1;v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkgo(act,:,1,j)-q.wknogo(act,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
+
 % % Final state-value map PLUS action-value vectors 
-% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.wkmap-q.wkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.wkgo(3,:)-q.wknogo(3,:)-(q.wkgo(1,:)-q.wknogo(1,:)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.wkgo(4,:)-q.wknogo(4,:)-(q.wkgo(2,:)-q.wknogo(2,:)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r');hold off;
+% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.wkmap(1,:,1,end)-q.wkmav(1,:,1,end))*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.wkgo(3,:,1,end)-q.wknogo(3,:,1,end)-(q.wkgo(1,:,1,end)-q.wknogo(1,:,1,end)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.wkgo(4,:,1,end)-q.wknogo(4,:,1,end)-(q.wkgo(2,:,1,end)-q.wknogo(2,:,1,end)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
 
 % % Smoothed x
 % xx=zeros(size(xx));for j=1:q.ntrial xx(1:q.trnt(j),j)=mylwfitends(q.xx(1:q.trnt(j),j),1,2); end;

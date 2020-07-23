@@ -1,1 +1,15 @@
 Mushroom body models of temporal difference learning.
+
+To run the MB TD model, the generic command is:
+q = mb_mv_td3(SEED,GAMMA,NTRIALS,NT,DISCOUNT,EPSKM);
+
+Additional optional arguments can be included (from line 52 onwards in mb_mv_td.m to see which options are available).
+
+Example usage:
+
+q = mb_mv_td3(1,1,100,[],0.9,10^-1.8,'memsave',false);
+
+Notes:
+Don't use 
+q = ........'memsave',true); 
+as it is buggy!
