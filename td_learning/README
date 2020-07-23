@@ -9,6 +9,8 @@ Example usage:
 
 q = mb_td(1,1,100,[],0.9,10^-1.8,'memsave',false);
 
+To plot output, see example sets of commands that are commented out at the end of mb_td.m
+
 Notes:
 Don't use 
 q = ........'memsave',true); 
