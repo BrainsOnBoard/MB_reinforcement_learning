@@ -1,4 +1,4 @@
-function out = mb_mv_td3(seed,gamma,ntrial,nt,discount,epskm,varargin)
+function out = mb_td(seed,gamma,ntrial,nt,discount,epskm,varargin)
 %
 % As MB_MV_TD2, but with shibire/dTrpA1-like interventions to MBONs/DANs
 %
