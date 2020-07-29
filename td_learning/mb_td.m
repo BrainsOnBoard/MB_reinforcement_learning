@@ -214,11 +214,13 @@ for j=1:ntrial
 end;
 rew = zeros(nt,ntrial);
 
+ts = 0;
+
 %%% Run simulation
 for tr=1:ntrial
-  %%% Init trial
+ 
+  %%% Copy synaptic weights from previous trial 
   if tr>1
-    % Copy synaptic weights from previous trial
     if ~memsave
       wkmap(1,:,1,tr) = wkmap(1,:,j-1,tr-1);
       wkmav(1,:,1,tr) = wkmav(1,:,j-1,tr-1);
@@ -231,6 +233,7 @@ for tr=1:ntrial
 %     r(:) = min(r(:));
 %   end;
   
+  %%% Initial time step
   % Compute MBON firing rates (state and action values)
   if memsave
     map(1,tr) = wkmap * s(:,yy(1,tr),xx(1,tr));
@@ -291,7 +294,10 @@ for tr=1:ntrial
   
   endtrialflag = false;
   j = 2;
-  while (j<=nt) && ~endtrialflag % Loop over time until target is reached  
+  
+  %%% Subsequent timesteps
+  while (j<=nt) && ~endtrialflag % Loop over time until target is reached
+      
     if tr<ntrial
       if ~d1flag
         if any(sum(repmat([yy(j,tr);xx(j,tr)],[1 size(rlocall,2)])==rlocall,1)==2)
@@ -406,6 +412,7 @@ for tr=1:ntrial
     end;
     % Record number of time steps in trial
     trnt(tr) = j;
+    
     % Update time
     j = j + 1;
   end;  
