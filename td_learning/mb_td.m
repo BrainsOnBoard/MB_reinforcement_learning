@@ -1,4 +1,4 @@
-function out = mb_td(seed,gamma,ntrial,nt,discount,epskm,varargin)
+function out = mb_td(seed,gamma,ntrial,discount,epskm,varargin)
 %
 % As MB_MV_TD2, but with shibire/dTrpA1-like interventions to MBONs/DANs
 %
@@ -7,7 +7,6 @@ function out = mb_td(seed,gamma,ntrial,nt,discount,epskm,varargin)
 %            number generator
 %    gamma - KC->DAN synaptic weight
 %   ntrial - number of trials (i.e. training episodes)
-%       nt - # trials
 % discount - discount factor in the range [0,1]
 %    epskm - learning rate
 % varargin - See below for optional arguments (line 51)
@@ -18,7 +17,7 @@ function out = mb_td(seed,gamma,ntrial,nt,discount,epskm,varargin)
 %%% Set defaults for optional parameters
 policy = 'on';
 progressflag = false;
-memsave = true;
+memsave = false;
 d1flag = false;
 one2one = true;
 intervene_id = 0;
@@ -148,10 +147,11 @@ amp = 10; % Total volume of available reward
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-radius = inf;min(nx2,ny2) + 10;
+radius = min(nx2, ny2) - 1;
 [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
-perim = -2; % The negative reinforcement for being outside the perim
+perim = -10; % The negative reinforcement for being outside the perim
 r = r - hunger*max(r(:));
+flag_escape = 0;
 if d1flag, r=zeros(1,nx); r(end) = amp; end;
 out.r = r;
 
@@ -329,8 +329,8 @@ for tr=1:ntrial
 %     end;
     
     % Compute DAN firing rates (add strong punishment if failed to reach target)
-    dap(j,tr) = max(0,wkdap * s(:,yy(j,tr),xx(j,tr)) - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*double(((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2));
-    dav(j,tr) = max(0,wkdav * s(:,yy(j,tr),xx(j,tr)) - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*double(((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2));    
+    dap(j,tr) = max(0,wkdap * s(:,yy(j,tr),xx(j,tr)) - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*flag_escape);
+    dav(j,tr) = max(0,wkdav * s(:,yy(j,tr),xx(j,tr)) - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*flag_escape);    
     
     % Update KC->MBON weights
     if memsave
@@ -349,10 +349,10 @@ for tr=1:ntrial
     
     % If current position is outside the perimeter, move back to previous
     % position
-    if ((x2-xx(j,tr))^2 + (y2 - yy(j,tr))^2)>radius^2
-      xx(j,tr) = xx(j-1,tr);
-      yy(j,tr) = yy(j-1,tr);
-    end;
+%     if ((nx2-xx(j,tr))^2 + (ny2 - yy(j,tr))^2)>radius^2
+%       xx(j,tr) = xx(j-1,tr);
+%       yy(j,tr) = yy(j-1,tr);
+%     end;
     
     if j<nt
       if ~d1flag
@@ -399,7 +399,17 @@ for tr=1:ntrial
         xx(j+1,tr) = min(nx,max(1,xx(j,tr) + decision(j,tr) - 3));
         yy(j+1,tr) = yy(j,tr);
       end;                
-    end;        
+    
+      % If the position update led the fly to be outside the perim, bring
+      % it back to its previous location
+      if ((nx2 - xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2) > radius^2
+          xx(j+1,tr) = xx(j,tr);
+          yy(j+1,tr) = yy(j,tr);
+          flag_escape = 1;
+      else
+          flag_escape = 0;
+      end;
+    end;         
     
     % Update eligibility trace
     el = el * dec_el + s(:,yy(j,tr),xx(j,tr)) / tau_el;
@@ -443,15 +453,11 @@ out.nk = nk;
 out.rew = rew;
 
 % Plotting
-% % Rewards obtained as function of time and trials: quick way to see how
-% fast learning took place
-% sr=zeros(q.nt,q.ntrial);for j=1:q.ntrial for k=1:q.nt sr(k,j)=q.r(q.yy(k,j),q.xx(k,j)); end;end;imagesc(sr);
-
-% % Movement along single trial route
-% k=1;imagesc(q.r>(0.5*max(q.r(:))));colormap(1-gray);hold on;n=size(q.xx,1); for j=1:n plot(q.xx(j,k),q.yy(j,k),'o','color',jjet(mod(j-1,64)+1,:)); hold on;pause(0.01); set(gca,'xlim',[0 20],'ylim',[0 20]);end; hold off;
+% % Rewards obtained as function of time and trials: quick way to see how fast learning took place
+% sr=zeros(q.nt,q.ntrial);for j=1:q.ntrial for k=1:q.trnt(j) sr(k,j)=q.r(q.yy(k,j),q.xx(k,j)); end;end;imagesc(sr);
 
 % % All visited locations for each trial, colour coded by trial
-% for j=1:size(q.wkmap,4) plot(q.xx(:,j)+0.5*randn(q.nt,1),q.yy(:,j)+0.5*randn(q.nt,1),'.','color',jjet(ceil(j/size(q.wkmap,4)*64),:)); hold on; pause(0.1); end; hold off;
+% jjet=zeros(q.ntrial,3); jjet(:,3) = 0:1/(q.ntrial-1):1; jjet(:,1) = 1:-1/(q.ntrial-1):0; for j=1:size(q.wkmap,4) plot(q.xx(:,j)+0.0*randn(q.nt,1),q.yy(:,j)+0.0*randn(q.nt,1),'.','color',jjet(ceil(j/size(q.wkmap,4)*64),:)); hold on; set(gca, 'xlim', [0.5, 20.5], 'ylim', [0.5, 20.5]); pause(0.1); end; hold off;
 
 % % Learning the value function map (2D)
 % for kk=1:size(q.wkmap,4) imagesc(reshape((q.wkmap(1,:,1,kk)-q.wkmav(1,:,1,kk))*reshape(q.s,[q.nk,q.nx*q.ny]),q.ny,q.nx));axis xy; pause(0.01); end;
