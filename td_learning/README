@@ -7,7 +7,7 @@ Additional optional arguments can be included (from line 52 onwards in mb_mv_td.
 
 Example usage:
 
-q = mb_td(1,1,100,[],0.9,10^-1.8,'memsave',false);
+q = mb_td(1,1,100,0.9,10^-1.8,'memsave',false);
 
 To plot output, see example sets of commands that are commented out at the end of mb_td.m
 
