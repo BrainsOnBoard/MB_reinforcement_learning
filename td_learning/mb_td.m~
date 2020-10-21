@@ -147,9 +147,9 @@ amp = 10; % Total volume of available reward
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-radius = min(nx2, ny2) - 1;
+radius = min(nx2, ny2);
 [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
-perim = -10; % The negative reinforcement for being outside the perim
+perim = -2; % The negative reinforcement for being outside the perim
 r = r - hunger*max(r(:));
 flag_escape = 0;
 if d1flag, r=zeros(1,nx); r(end) = amp; end;
@@ -402,7 +402,7 @@ for tr=1:ntrial
     
       % If the position update led the fly to be outside the perim, bring
       % it back to its previous location
-      if ((nx2 - xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2) > radius^2
+      if double(((nx2-xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2)>radius^2)
           xx(j+1,tr) = xx(j,tr);
           yy(j+1,tr) = yy(j,tr);
           flag_escape = 1;
