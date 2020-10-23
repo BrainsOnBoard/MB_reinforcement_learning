@@ -110,8 +110,25 @@ beta = 1 / T;
 tau_el = 15 * tscale; if d1flag, tau_el = 1; end;
 dec_el = 1 - 1/tau_el;
 
+%%% Generate KC responses to cues (Ofstad Arena Visual Input)
+% Pre-generate all KC activations for each location
+z = load('ofstad_etal_arena.mat');
+scale_f = z.d / (nx + 1);
+im = getviewfast(0, 0, 0, 0/180*pi, z.X, z.Y, z.Z);
+im_scale = 1/(sqrt(numel(im)/400));
+im_r = imresize(im, im_scale, 'bilinear');
+nk = numel(im_r);
+s = zeros(nk, ny, nx);
+for j=1:ny
+  for k=1:nx
+    im = getviewfast(k*scale_f-(z.d/2), j*scale_f-(z.d/2), 0, 0/180*pi, z.X, z.Y, z.Z);
+    im_r = imresize(im, im_scale, 'bilinear');
+    s(:, j, k) = im_r(:);
+  end
+end
+
 %%% Initialise synaptic weights
-nk = nx*ny; % # of KCs
+%nk = nx*ny; % # of KCs
 if memsave
   wkmap = 0.1*rand(1,nk);
   wkmav = 0.1*rand(1,nk);
@@ -147,7 +164,7 @@ amp = 10; % Total volume of available reward
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-radius = min(nx2, ny2) - 1;
+radius = (nx + 1) / 2 - 1; %min(nx2, ny2) - 1;
 [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
 perim = -10; % The negative reinforcement for being outside the perim
 r = r - hunger*max(r(:));
@@ -156,29 +173,29 @@ if d1flag, r=zeros(1,nx); r(end) = amp; end;
 out.r = r;
 
 %%% Generate KC responses to cues
-s = zeros(nk,ny,nx);
-if one2one
-  ind = 1;
-  for j=1:ny 
-    for k=1:nx
-      s(ind,j,k) = mr;
-      ind = ind + 1;
-    end
-  end
-else
-  for j=1:ny
-    for k=1:nx
-      flag = true;
-      while flag
-        %       s((j-1)*nx+k,j,k) = 1;
-        s(:,j,k) = double(rand(nk,1) < sparseness);
-        flag = ~any(s(:,j,k));
-      end
-      s(:,j,k) = s(:,j,k) / sum(s(:,j,k)) * mr;
-    end
-  end
-end
-if d1flag, s(:,1,1) = 0; end; % FOR 1D
+% s = zeros(nk,ny,nx);
+% if one2one
+%   ind = 1;
+%   for j=1:ny 
+%     for k=1:nx
+%       s(ind,j,k) = mr;
+%       ind = ind + 1;
+%     end
+%   end
+% else
+%   for j=1:ny
+%     for k=1:nx
+%       flag = true;
+%       while flag
+%         %       s((j-1)*nx+k,j,k) = 1;
+%         s(:,j,k) = double(rand(nk,1) < sparseness);
+%         flag = ~any(s(:,j,k));
+%       end
+%       s(:,j,k) = s(:,j,k) / sum(s(:,j,k)) * mr;
+%     end
+%   end
+% end
+% if d1flag, s(:,1,1) = 0; end; % FOR 1D
 % s = reshape(s,nk,nx*ny);
 % ss = zeros(size(s));
 % for j=1:(ny*nx)
@@ -414,6 +431,7 @@ for tr=1:ntrial
           xx(j+1,tr) = xx(j,tr);
           yy(j+1,tr) = yy(j,tr);
           flag_escape = 1;
+          %keyboard;
       else
           flag_escape = 0;
       end;
