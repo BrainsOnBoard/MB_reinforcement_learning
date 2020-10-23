@@ -120,12 +120,12 @@ if memsave
 else
   wkmap = zeros(1,nk,nt,ntrial); % KC -> M+
   wkmav = zeros(1,nk,nt,ntrial); % KC -> M-
-  wkmap(:,:,:,1) = 0.1*rand(nk,nt);
-  wkmav(:,:,:,1) = 0.1*rand(nk,nt);
+  wkmap(:,:,1,1) = 0.1*rand(1,nk);
+  wkmav(:,:,1,1) = 0.1*rand(1,nk);
   wkgo = zeros(4,nk,nt,ntrial); % KC -> GO actor
   wknogo = zeros(4,nk,nt,ntrial); % KC -> NOGO actor
-  wkgo(:,:,:,1) = 0.1*rand(4,nk,nt);
-  wknogo(:,:,:,1) = 0.1*rand(4,nk,nt);
+  wkgo(:,:,1,1) = 0.1*rand(4,nk);
+  wknogo(:,:,1,1) = 0.1*rand(4,nk);
 end;
 wkdap = gamma * ones(1,nk); % KC -> D+
 wkdav = gamma * ones(1,nk); % KC -> D-
@@ -234,13 +234,28 @@ for tr=1:ntrial
 %   end;
   
   %%% Initial time step
-  % Compute MBON firing rates (state and action values)
   if memsave
+    % Save final version of weights before test trial
+    if tr==ntrial
+      fwkmap = wkmap;
+      fwkmav = wkmav;
+      fwkgo = wkgo;
+      fwknogo = wknogo;
+    end;
+    % Compute MBON firing rates (state and action values)
     map(1,tr) = wkmap * s(:,yy(1,tr),xx(1,tr));
     mav(1,tr) = wkmav * s(:,yy(1,tr),xx(1,tr));
     go(1,:,tr) = wkgo * s(:,yy(1,tr),xx(1,tr));
     nogo(1,:,tr) = wknogo * s(:,yy(1,tr),xx(1,tr));
   else
+    % Save final version of weights before test trial
+    if tr==ntrial
+      fwkmap = wkmap(1,:,1,tr);
+      fwkmav = wkmav(1,:,1,tr);
+      fwkgo = wkgo(:,:,1,tr);
+      fwknogo = wknogo(:,:,1,tr);
+    end;
+    % Compute MBON firing rates (state and action values)
     map(1,tr) = wkmap(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
     mav(1,tr) = wkmav(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
     go(1,:,tr) = wkgo(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
@@ -347,13 +362,6 @@ for tr=1:ntrial
       wknogo(decision(j-1,tr),:,j,tr) = max(0,wknogo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
     end;
     
-    % If current position is outside the perimeter, move back to previous
-    % position
-%     if ((nx2-xx(j,tr))^2 + (ny2 - yy(j,tr))^2)>radius^2
-%       xx(j,tr) = xx(j-1,tr);
-%       yy(j,tr) = yy(j-1,tr);
-%     end;
-    
     if j<nt
       if ~d1flag
         % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
@@ -451,6 +459,10 @@ out.ntrial = ntrial;
 out.trnt = trnt;
 out.nk = nk;
 out.rew = rew;
+out.fwkmap = fwkmap;
+out.fwkmav = fwkmav;
+out.fwkgo = fwkgo;
+out.fwknogo = fwknogo;
 
 % Plotting
 % % Rewards obtained as function of time and trials: quick way to see how fast learning took place
@@ -458,10 +470,6 @@ out.rew = rew;
 
 % % All visited locations for each trial, colour coded by trial
 % jjet=zeros(q.ntrial,3); jjet(:,3) = 0:1/(q.ntrial-1):1; jjet(:,1) = 1:-1/(q.ntrial-1):0; for j=1:size(q.wkmap,4) plot(q.xx(:,j)+0.0*randn(q.nt,1),q.yy(:,j)+0.0*randn(q.nt,1),'.','color',jjet(ceil(j/size(q.wkmap,4)*64),:)); hold on; set(gca, 'xlim', [0.5, 20.5], 'ylim', [0.5, 20.5]); pause(0.1); end; hold off;
-
-% % Learning the value function map (2D)
-% for kk=1:size(q.wkmap,4) imagesc(reshape((q.wkmap(1,:,1,kk)-q.wkmav(1,:,1,kk))*reshape(q.s,[q.nk,q.nx*q.ny]),q.ny,q.nx));axis xy; pause(0.01); end;
-% j=1;ch=1; for kk=1:size(q.wkmap,4) imagesc(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),[-1 1]);axis xy; pause(0.1); end;
 
 % % Learning the value function map (1D)
 % j=1;ch=1; for kk=1:5:size(q.wkmap,4) plot(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),'color',[kk/size(q.wkmap,4) 0 (size(q.wkmap,4)-kk)/size(q.wkmap,4)]); pause(0.1); hold on; end;hold off;
@@ -475,11 +483,14 @@ out.rew = rew;
 % % Learning the value function map
 % v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkmap(1,:,1,j)-q.wkmav(1,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
 
+% % Final value function map 
+% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v);colormap(1-gray);
+
 % % Learning the action value map
 % act=1;v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkgo(act,:,1,j)-q.wknogo(act,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
 
 % % Final state-value map PLUS action-value vectors 
-% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.wkmap(1,:,1,end)-q.wkmav(1,:,1,end))*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.wkgo(3,:,1,end)-q.wknogo(3,:,1,end)-(q.wkgo(1,:,1,end)-q.wknogo(1,:,1,end)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.wkgo(4,:,1,end)-q.wknogo(4,:,1,end)-(q.wkgo(2,:,1,end)-q.wknogo(2,:,1,end)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
+% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.fwkgo(3,:)-q.fwknogo(3,:)-(q.fwkgo(1,:)-q.fwknogo(1,:)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.fwkgo(4,:)-q.fwknogo(4,:)-(q.fwkgo(2,:)-q.fwknogo(2,:)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
 
 % % Smoothed x
 % xx=zeros(size(xx));for j=1:q.ntrial xx(1:q.trnt(j),j)=mylwfitends(q.xx(1:q.trnt(j),j),1,2); end;
