@@ -318,7 +318,7 @@ for tr=1:ntrial
     decision(1,tr) = 4; 
   end;
   
-  % TODO Update position % additional if-else statement for extra (first section
+  % Update position % additional if-else statement for extra (first section
   % 90 or 270) (second section 0 or 180) to say which one it is, look at
   % what each decision actually is) (1-down, 2-left, 3-up, 4-right) (Change 
   % our direction indices to make it compatible with 'traditional' (right-up-left-down)
@@ -525,7 +525,7 @@ out.fwknogo = fwknogo;
 % % Learning the action value map
 % act=1;v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkgo(act,:,1,j)-q.wknogo(act,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
 
-% % Final state-value map PLUS action-value vectors TODO (CHANGE INDICES TO MAKE
+% % Final state-value map PLUS action-value vectors (CHANGE INDICES TO MAKE
 % IT WORK ONCE YOU'VE UPDATED THE DECISION MAKING)
 % ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.fwkgo(3,:)-q.fwknogo(3,:)-(q.fwkgo(1,:)-q.fwknogo(1,:)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.fwkgo(4,:)-q.fwknogo(4,:)-(q.fwkgo(2,:)-q.fwknogo(2,:)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
 
