@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 function out = mb_td(seed,gamma,ntrial,discount,epskm,stimulus,varargin)
+=======
+function out = mb_td(seed,gamma,ntrial,discount,epskm,varargin)
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 %
 % As MB_MV_TD2, but with shibire/dTrpA1-like interventions to MBONs/DANs
 %
@@ -9,15 +13,21 @@ function out = mb_td(seed,gamma,ntrial,discount,epskm,stimulus,varargin)
 %   ntrial - number of trials (i.e. training episodes)
 % discount - discount factor in the range [0,1]
 %    epskm - learning rate
+<<<<<<< HEAD
 % stimulus - Choose the stimulus for generating cues: 'ofstad', 'one2one'
 % or 'sparse'
+=======
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 % varargin - See below for optional arguments (line 51)
 
 % Outputs:
 %  out - struct containing numerous fields (see bottom of script) 
+<<<<<<< HEAD
 %
 % Example run: q = mb_td(1,1,100,0.9,10^-1.8,'memsave',false, 'stimulus', 'ofstad');
 %   
+=======
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 
 %%% Set defaults for optional parameters
 policy = 'on';
@@ -32,7 +42,11 @@ pap.stile = 25; % mm
 pap.speed = 12.5; % mm/s
 pap.ttrial = 300; % s
 nx = 20; 
+<<<<<<< HEAD
 ny = 20;
+=======
+ny = 20; 
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 nx2 = ceil(nx/2);
 ny2 = ceil(ny/2);
 nx14 = ceil(nx/4);
@@ -41,7 +55,10 @@ nx34 = ceil(nx*3/4);
 ny34 = ceil(ny*3/4);
 nx116 = ceil(nx/16);
 ny116 = ceil(ny/16);
+<<<<<<< HEAD
 nk = nx*ny; % # of KCs
+=======
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 
 % Compute a scaling factor for time, so that an equivalent trial duration
 % is used in this model when compared to the trial duration in Ofstad et
@@ -54,7 +71,11 @@ tscale = 1 / (pap.stile / pap.speed) / pap.ntile * min(nx,ny);
 nt = ceil(pap.ttrial * tscale);
 
 %%% Update default parameters with custom options
+<<<<<<< HEAD
 if nargin>7
+=======
+if nargin>6
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
   j = 1;
   while j<=numel(varargin)
     if strcmp(varargin{j},'intervene_id')
@@ -116,6 +137,7 @@ beta = 1 / T;
 tau_el = 15 * tscale; if d1flag, tau_el = 1; end;
 dec_el = 1 - 1/tau_el;
 
+<<<<<<< HEAD
 %%% Generate KC responses to cues
 %s = zeros(nk, ny, nx);
 if strcmp(stimulus, 'ofstad') % Ofstad Arena Visual Input (load pre-generated KC activations for each location)
@@ -162,6 +184,10 @@ if d1flag, s(:,1,1) = 0; end; % FOR 1D
 
 %%% Initialise synaptic weights
 %nk = nx*ny; % # of KCs
+=======
+%%% Initialise synaptic weights
+nk = nx*ny; % # of KCs
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 if memsave
   wkmap = 0.1*rand(1,nk);
   wkmav = 0.1*rand(1,nk);
@@ -170,12 +196,21 @@ if memsave
 else
   wkmap = zeros(1,nk,nt,ntrial); % KC -> M+
   wkmav = zeros(1,nk,nt,ntrial); % KC -> M-
+<<<<<<< HEAD
   wkmap(:,:,1,1) = 0.1*rand(1,nk);
   wkmav(:,:,1,1) = 0.1*rand(1,nk);
   wkgo = zeros(4,nk,nt,ntrial); % KC -> GO actor
   wknogo = zeros(4,nk,nt,ntrial); % KC -> NOGO actor
   wkgo(:,:,1,1) = 0.1*rand(4,nk);
   wknogo(:,:,1,1) = 0.1*rand(4,nk);
+=======
+  wkmap(:,:,:,1) = 0.1*rand(nk,nt);
+  wkmav(:,:,:,1) = 0.1*rand(nk,nt);
+  wkgo = zeros(4,nk,nt,ntrial); % KC -> GO actor
+  wknogo = zeros(4,nk,nt,ntrial); % KC -> NOGO actor
+  wkgo(:,:,:,1) = 0.1*rand(4,nk,nt);
+  wknogo(:,:,:,1) = 0.1*rand(4,nk,nt);
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 end;
 wkdap = gamma * ones(1,nk); % KC -> D+
 wkdav = gamma * ones(1,nk); % KC -> D-
@@ -184,7 +219,11 @@ wmavdap = 1; % M- -> D+
 wmapdav = 1; % M+ -> D-
 wmavdav = 1; % M- -> D-
 
+<<<<<<< HEAD
 %%% Reward location
+=======
+% Reward location
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
 rlocall = zeros(2,length(rloc{1})*length(rloc{2}));
 for j=1:length(rloc{1})
@@ -197,14 +236,59 @@ amp = 10; % Total volume of available reward
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
+<<<<<<< HEAD
 radius = (nx + 1) / 2 - 1; %min(nx2, ny2) - 1;
 [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
 perim = -10; % The negative reinforcement for being outside the perim
+=======
+radius = min(nx2, ny2);
+[xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
+perim = -2; % The negative reinforcement for being outside the perim
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 r = r - hunger*max(r(:));
 flag_escape = 0;
 if d1flag, r=zeros(1,nx); r(end) = amp; end;
 out.r = r;
 
+<<<<<<< HEAD
+=======
+%%% Generate KC responses to cues
+s = zeros(nk,ny,nx);
+if one2one
+  ind = 1;
+  for j=1:ny 
+    for k=1:nx
+      s(ind,j,k) = mr;
+      ind = ind + 1;
+    end
+  end
+else
+  for j=1:ny
+    for k=1:nx
+      flag = true;
+      while flag
+        %       s((j-1)*nx+k,j,k) = 1;
+        s(:,j,k) = double(rand(nk,1) < sparseness);
+        flag = ~any(s(:,j,k));
+      end
+      s(:,j,k) = s(:,j,k) / sum(s(:,j,k)) * mr;
+    end
+  end
+end
+if d1flag, s(:,1,1) = 0; end; % FOR 1D
+% s = reshape(s,nk,nx*ny);
+% ss = zeros(size(s));
+% for j=1:(ny*nx)
+%   ss(:,j) = sum(s .* repmat(do(j,:),[nk,1]),2);
+%   ss(:,j) = ss(:,j) / sum(ss(:,j)) * 10;
+% end;
+% s = reshape(ss,nk,ny,nx);
+% Add correlations between KCs
+for j=1:nk
+  s(j,:,:) = mygfilter(squeeze(s(j,:,:)),[1 1],[20 20],'replicate');
+end;
+
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 %%% Allocate memory
 dap = zeros(nt,ntrial);
 dav = zeros(nt,ntrial);
@@ -218,7 +302,10 @@ probs = zeros(4,1);
 xx = nan(nt,ntrial);
 yy = nan(nt,ntrial);
 trnt = zeros(ntrial,1); % #time steps per trial
+<<<<<<< HEAD
 th = ones(nt,ntrial);
+=======
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 
 % Init position
 startpos = ones(4,2) * ceil(nx14); 
@@ -247,6 +334,7 @@ for tr=1:ntrial
 %   if tr==ntrial
 %     r(:) = min(r(:));
 %   end;
+<<<<<<< HEAD
 
   % Stimulus at current time
   if strcmp(stimulus, 'ofstad')
@@ -282,6 +370,21 @@ for tr=1:ntrial
     mav(1,tr) = wkmav(:,:,1,tr) * ss;
     go(1,:,tr) = wkgo(:,:,1,tr) * ss;
     nogo(1,:,tr) = wknogo(:,:,1,tr) * ss;
+=======
+  
+  %%% Initial time step
+  % Compute MBON firing rates (state and action values)
+  if memsave
+    map(1,tr) = wkmap * s(:,yy(1,tr),xx(1,tr));
+    mav(1,tr) = wkmav * s(:,yy(1,tr),xx(1,tr));
+    go(1,:,tr) = wkgo * s(:,yy(1,tr),xx(1,tr));
+    nogo(1,:,tr) = wknogo * s(:,yy(1,tr),xx(1,tr));
+  else
+    map(1,tr) = wkmap(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
+    mav(1,tr) = wkmav(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
+    go(1,:,tr) = wkgo(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
+    nogo(1,:,tr) = wknogo(:,:,1,tr) * s(:,yy(1,tr),xx(1,tr));
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
   end;
     
   % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
@@ -318,6 +421,7 @@ for tr=1:ntrial
     decision(1,tr) = 4; 
   end;
   
+<<<<<<< HEAD
   % Update position % additional if-else statement for extra (first section
   % 90 or 270) (second section 0 or 180) to say which one it is, look at
   % what each decision actually is) (1-down, 2-left, 3-up, 4-right) (Change 
@@ -325,6 +429,9 @@ for tr=1:ntrial
   % (ALSO DO FOR ALL OTHER TIMESTEPS BELOW)(update indices in go/nogo
   % firing rates)
  
+=======
+  % Update position
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
   if mod(decision(1,tr),2)
     xx(2,tr) = xx(1,tr);
     yy(2,tr) = min(ny,max(1,yy(1,tr) + decision(1,tr) - 2));
@@ -333,7 +440,11 @@ for tr=1:ntrial
     yy(2,tr) = yy(1,tr);
   end;
   el(:) = 0;
+<<<<<<< HEAD
   el = el + ss / tau_el;
+=======
+  el = el + s(:,yy(1,tr),xx(1,tr)) / tau_el;
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
   
   endtrialflag = false;
   j = 2;
@@ -352,6 +463,7 @@ for tr=1:ntrial
         end;
       end;
     end;
+<<<<<<< HEAD
     
     % Stimulus at current time
     if strcmp(stimulus, 'ofstad')
@@ -371,6 +483,20 @@ for tr=1:ntrial
       mav(j,tr) = wkmav(:,:,j-1,tr) * ss;
       go(j,:,tr) = wkgo(:,:,j-1,tr) * ss;
       nogo(j,:,tr) = wknogo(:,:,j-1,tr) * ss;
+=======
+
+    % Compute MBON firing rates (state and action values)
+    if memsave
+      map(j,tr) = wkmap * s(:,yy(j,tr),xx(j,tr));
+      mav(j,tr) = wkmav * s(:,yy(j,tr),xx(j,tr));
+      go(j,:,tr) = wkgo * s(:,yy(j,tr),xx(j,tr));
+      nogo(j,:,tr) = wknogo * s(:,yy(j,tr),xx(j,tr));
+    else
+      map(j,tr) = wkmap(:,:,j-1,tr) * s(:,yy(j,tr),xx(j,tr));
+      mav(j,tr) = wkmav(:,:,j-1,tr) * s(:,yy(j,tr),xx(j,tr));
+      go(j,:,tr) = wkgo(:,:,j-1,tr) * s(:,yy(j,tr),xx(j,tr));
+      nogo(j,:,tr) = wknogo(:,:,j-1,tr) * s(:,yy(j,tr),xx(j,tr));
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
     end;
     
     rew(j,tr) = r(yy(j,tr),xx(j,tr));
@@ -379,8 +505,13 @@ for tr=1:ntrial
 %     end;
     
     % Compute DAN firing rates (add strong punishment if failed to reach target)
+<<<<<<< HEAD
     dap(j,tr) = max(0,wkdap * ss - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*flag_escape);
     dav(j,tr) = max(0,wkdav * ss - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*flag_escape);    
+=======
+    dap(j,tr) = max(0,wkdap * s(:,yy(j,tr),xx(j,tr)) - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*flag_escape);
+    dav(j,tr) = max(0,wkdav * s(:,yy(j,tr),xx(j,tr)) - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*flag_escape);    
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
     
     % Update KC->MBON weights
     if memsave
@@ -397,6 +528,16 @@ for tr=1:ntrial
       wknogo(decision(j-1,tr),:,j,tr) = max(0,wknogo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
     end;
     
+<<<<<<< HEAD
+=======
+    % If current position is outside the perimeter, move back to previous
+    % position
+%     if ((nx2-xx(j,tr))^2 + (ny2 - yy(j,tr))^2)>radius^2
+%       xx(j,tr) = xx(j-1,tr);
+%       yy(j,tr) = yy(j-1,tr);
+%     end;
+    
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
     if j<nt
       if ~d1flag
         % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
@@ -445,18 +586,29 @@ for tr=1:ntrial
     
       % If the position update led the fly to be outside the perim, bring
       % it back to its previous location
+<<<<<<< HEAD
       if ((nx2 - xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2) > radius^2
           xx(j+1,tr) = xx(j,tr);
           yy(j+1,tr) = yy(j,tr);
           flag_escape = 1;
           %keyboard;
+=======
+      if double(((nx2-xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2)>radius^2)
+          xx(j+1,tr) = xx(j,tr);
+          yy(j+1,tr) = yy(j,tr);
+          flag_escape = 1;
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
       else
           flag_escape = 0;
       end;
     end;         
     
     % Update eligibility trace
+<<<<<<< HEAD
     el = el * dec_el + ss / tau_el;
+=======
+    el = el * dec_el + s(:,yy(j,tr),xx(j,tr)) / tau_el;
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
     
     % Report progress
     if progressflag
@@ -495,10 +647,13 @@ out.ntrial = ntrial;
 out.trnt = trnt;
 out.nk = nk;
 out.rew = rew;
+<<<<<<< HEAD
 out.fwkmap = fwkmap;
 out.fwkmav = fwkmav;
 out.fwkgo = fwkgo;
 out.fwknogo = fwknogo;
+=======
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 
 % Plotting
 % % Rewards obtained as function of time and trials: quick way to see how fast learning took place
@@ -507,6 +662,13 @@ out.fwknogo = fwknogo;
 % % All visited locations for each trial, colour coded by trial
 % jjet=zeros(q.ntrial,3); jjet(:,3) = 0:1/(q.ntrial-1):1; jjet(:,1) = 1:-1/(q.ntrial-1):0; for j=1:size(q.wkmap,4) plot(q.xx(:,j)+0.0*randn(q.nt,1),q.yy(:,j)+0.0*randn(q.nt,1),'.','color',jjet(ceil(j/size(q.wkmap,4)*64),:)); hold on; set(gca, 'xlim', [0.5, 20.5], 'ylim', [0.5, 20.5]); pause(0.1); end; hold off;
 
+<<<<<<< HEAD
+=======
+% % Learning the value function map (2D)
+% for kk=1:size(q.wkmap,4) imagesc(reshape((q.wkmap(1,:,1,kk)-q.wkmav(1,:,1,kk))*reshape(q.s,[q.nk,q.nx*q.ny]),q.ny,q.nx));axis xy; pause(0.01); end;
+% j=1;ch=1; for kk=1:size(q.wkmap,4) imagesc(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),[-1 1]);axis xy; pause(0.1); end;
+
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 % % Learning the value function map (1D)
 % j=1;ch=1; for kk=1:5:size(q.wkmap,4) plot(reshape(q.wkmap(ch,:,j,kk)-q.wkmav(ch,:,j,kk),q.ny,q.nx),'color',[kk/size(q.wkmap,4) 0 (size(q.wkmap,4)-kk)/size(q.wkmap,4)]); pause(0.1); hold on; end;hold off;
 
@@ -519,6 +681,7 @@ out.fwknogo = fwknogo;
 % % Learning the value function map
 % v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkmap(1,:,1,j)-q.wkmav(1,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
 
+<<<<<<< HEAD
 % % Final value function map 
 % ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v);colormap(1-gray);
 
@@ -528,6 +691,13 @@ out.fwknogo = fwknogo;
 % % Final state-value map PLUS action-value vectors (CHANGE INDICES TO MAKE
 % IT WORK ONCE YOU'VE UPDATED THE DECISION MAKING)
 % ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.fwkgo(3,:)-q.fwknogo(3,:)-(q.fwkgo(1,:)-q.fwknogo(1,:)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.fwkgo(4,:)-q.fwknogo(4,:)-(q.fwkgo(2,:)-q.fwknogo(2,:)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
+=======
+% % Learning the action value map
+% act=1;v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkgo(act,:,1,j)-q.wknogo(act,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
+
+% % Final state-value map PLUS action-value vectors 
+% ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.wkmap(1,:,1,end)-q.wkmav(1,:,1,end))*ss; v=reshape(val,q.ny,q.nx);imagesc(v,[0 5]);colormap(1-gray); ss=reshape(q.s,q.nk,q.ny*q.nx);vy=(q.wkgo(3,:,1,end)-q.wknogo(3,:,1,end)-(q.wkgo(1,:,1,end)-q.wknogo(1,:,1,end)))*ss; vy=reshape(vy,q.ny,q.nx);vx=(q.wkgo(4,:,1,end)-q.wknogo(4,:,1,end)-(q.wkgo(2,:,1,end)-q.wknogo(2,:,1,end)))*ss; vx=reshape(vx,q.ny,q.nx); hold on;quiver(vx,vy,'r','autoscalefactor',1);hold off;
+>>>>>>> parent of 31c26e5... ofstad arena visual input working
 
 % % Smoothed x
 % xx=zeros(size(xx));for j=1:q.ntrial xx(1:q.trnt(j),j)=mylwfitends(q.xx(1:q.trnt(j),j),1,2); end;
@@ -557,4 +727,8 @@ out.fwknogo = fwknogo;
 % end;
 % asd = nanstd(a,[],3);
 % am = nanmean(a,3);
+<<<<<<< HEAD
 % vvm = nanmean(vv,3);
+=======
+% vvm = nanmean(vv,3);
+>>>>>>> parent of 31c26e5... ofstad arena visual input working

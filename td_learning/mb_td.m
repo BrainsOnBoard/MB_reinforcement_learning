@@ -20,6 +20,7 @@ function out = mb_td(seed,gamma,ntrial,discount,epskm,stimulus,varargin)
 %   
 
 %%% Set defaults for optional parameters
+fpath = '~/git/MB_reinforcement_learning/td_learning/';
 policy = 'on';
 progressflag = false;
 memsave = false;
@@ -119,7 +120,7 @@ dec_el = 1 - 1/tau_el;
 %%% Generate KC responses to cues
 %s = zeros(nk, ny, nx);
 if strcmp(stimulus, 'ofstad') % Ofstad Arena Visual Input (load pre-generated KC activations for each location)
-    struc = load('ofstad_stimulus.mat');
+    struc = load([fpath 'ofstad_stimulus.mat']);
     s = struc.s/25;
     nk = struc.nk;
     
@@ -158,10 +159,8 @@ else
 end;
 
 if d1flag, s(:,1,1) = 0; end; % FOR 1D
- 
 
 %%% Initialise synaptic weights
-%nk = nx*ny; % # of KCs
 if memsave
   wkmap = 0.1*rand(1,nk);
   wkmav = 0.1*rand(1,nk);
@@ -185,7 +184,8 @@ wmapdav = 1; % M+ -> D-
 wmavdav = 1; % M- -> D-
 
 %%% Reward location
-rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
+% rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
+rloc = {(ny34-(ny116-1)):(ny34+(ny116-1)); (nx14-(nx116-1)):(nx14+(nx116-1))};
 rlocall = zeros(2,length(rloc{1})*length(rloc{2}));
 for j=1:length(rloc{1})
   for k=1:length(rloc{2})
@@ -197,7 +197,7 @@ amp = 10; % Total volume of available reward
 r = zeros(ny,nx);
 r(rloc{1},rloc{2}) = amp;
 hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-radius = (nx + 1) / 2 - 1; %min(nx2, ny2) - 1;
+radius = min(nx2, ny2) - 1;
 [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
 perim = -10; % The negative reinforcement for being outside the perim
 r = r - hunger*max(r(:));
@@ -218,7 +218,8 @@ probs = zeros(4,1);
 xx = nan(nt,ntrial);
 yy = nan(nt,ntrial);
 trnt = zeros(ntrial,1); % #time steps per trial
-th = ones(nt,ntrial);
+th = zeros(nt,ntrial);
+th(1,:) = randi(4,1,ntrial);
 
 % Init position
 startpos = ones(4,2) * ceil(nx14); 
@@ -228,8 +229,6 @@ for j=1:ntrial
   xx(1,j) = startpos(mod(j-1,size(startpos,1))+1,2);
 end;
 rew = zeros(nt,ntrial);
-
-ts = 0;
 
 %%% Run simulation
 for tr=1:ntrial
@@ -251,6 +250,7 @@ for tr=1:ntrial
   % Stimulus at current time
   if strcmp(stimulus, 'ofstad')
     ss = s(:, yy(1,tr), xx(1,tr), th(1,tr));
+%     ss = s(:, yy(1,tr), xx(1,tr));
   else
     ss = s(:, yy(1,tr), xx(1,tr));
   end;
@@ -318,20 +318,30 @@ for tr=1:ntrial
     decision(1,tr) = 4; 
   end;
   
-  % TODO Update position % additional if-else statement for extra (first section
-  % 90 or 270) (second section 0 or 180) to say which one it is, look at
-  % what each decision actually is) (1-down, 2-left, 3-up, 4-right) (Change 
-  % our direction indices to make it compatible with 'traditional' (right-up-left-down)
-  % (ALSO DO FOR ALL OTHER TIMESTEPS BELOW)(update indices in go/nogo
-  % firing rates)
- 
-  if mod(decision(1,tr),2)
-    xx(2,tr) = xx(1,tr);
-    yy(2,tr) = min(ny,max(1,yy(1,tr) + decision(1,tr) - 2));
-  else
-    xx(2,tr) = min(nx,max(1,xx(1,tr) + decision(1,tr) - 3));
+  %%% Update location
+  if decision(1,tr) == 1
+    xx(2,tr) = min(nx,max(1,xx(1,tr) + 1));
     yy(2,tr) = yy(1,tr);
+  elseif decision(1,tr) == 2
+    xx(2,tr) = xx(1,tr);
+    yy(2,tr) = min(ny,max(1,yy(1,tr) + 1));
+  elseif decision(1,tr) == 3
+    xx(2,tr) = min(nx,max(1,xx(1,tr) - 1));
+    yy(2,tr) = yy(1,tr);
+  elseif decision(1,tr) == 4
+    xx(2,tr) = xx(1,tr);
+    yy(2,tr) = min(ny,max(1,yy(1,tr) - 1));
   end;
+  %%% Update orientation
+  th(2,tr) = decision(1,tr);
+  
+%   if mod(decision(1,tr),2)
+%     xx(2,tr) = xx(1,tr);
+%     yy(2,tr) = min(ny,max(1,yy(1,tr) + decision(1,tr) - 2));
+%   else
+%     xx(2,tr) = min(nx,max(1,xx(1,tr) + decision(1,tr) - 3));
+%     yy(2,tr) = yy(1,tr);
+%   end;
   el(:) = 0;
   el = el + ss / tau_el;
   
@@ -356,6 +366,7 @@ for tr=1:ntrial
     % Stimulus at current time
     if strcmp(stimulus, 'ofstad')
       ss = s(:, yy(j,tr), xx(j,tr), th(j,tr));
+%       ss = s(:, yy(j,tr), xx(j,tr));
     else
       ss = s(:, yy(j,tr), xx(j,tr));
     end;
@@ -434,14 +445,30 @@ for tr=1:ntrial
         decision(j,tr) = 4; 
       end;
       
-      % Update position
-      if mod(decision(j,tr),2)
-        xx(j+1,tr) = xx(j,tr);
-        yy(j+1,tr) = min(ny,max(1,yy(j,tr) + decision(j,tr) - 2));
-      else
-        xx(j+1,tr) = min(nx,max(1,xx(j,tr) + decision(j,tr) - 3));
+      %%% Update position
+      if decision(j,tr) == 1
+        xx(j+1,tr) = min(nx,max(1,xx(j,tr) + 1));
         yy(j+1,tr) = yy(j,tr);
-      end;                
+      elseif decision(j,tr) == 2
+        xx(j+1,tr) = xx(j,tr);
+        yy(j+1,tr) = min(ny,max(1,yy(j,tr) + 1));
+      elseif decision(j,tr) == 3
+        xx(j+1,tr) = min(nx,max(1,xx(j,tr) - 1));
+        yy(j+1,tr) = yy(j,tr);
+      elseif decision(j,tr) == 4
+        xx(j+1,tr) = xx(j,tr);
+        yy(j+1,tr) = min(ny,max(1,yy(j,tr) - 1));
+      end;
+      %%% Update orientation
+      th(j+1,tr) = decision(j,tr);
+      
+%       if mod(decision(j,tr),2)
+%         xx(j+1,tr) = xx(j,tr);
+%         yy(j+1,tr) = min(ny,max(1,yy(j,tr) + decision(j,tr) - 2));
+%       else
+%         xx(j+1,tr) = min(nx,max(1,xx(j,tr) + decision(j,tr) - 3));
+%         yy(j+1,tr) = yy(j,tr);
+%       end;                
     
       % If the position update led the fly to be outside the perim, bring
       % it back to its previous location
@@ -449,7 +476,6 @@ for tr=1:ntrial
           xx(j+1,tr) = xx(j,tr);
           yy(j+1,tr) = yy(j,tr);
           flag_escape = 1;
-          %keyboard;
       else
           flag_escape = 0;
       end;
@@ -515,12 +541,14 @@ out.fwknogo = fwknogo;
 
 % %  Sliding average track history
 % a=zeros(q.ny,q.nx,q.ntrial);for k=1:q.ntrial for j=1:(sum(q.decision(:,k)>0)+1) a(q.yy(j,k),q.xx(j,k),k)=1;end;end; aa=mylwfitends(a,3,20); myplaymov(0,aa(:,:,1:10:end),0.1,1-gray,[0 1]);
+% a=zeros(q.ny,q.nx,q.ntrial);for k=1:q.ntrial for j=1:(sum(q.decision(:,k)>0)+1) a(q.yy(j,k),q.xx(j,k),k)=1;end;end; aa=mylwfitends(a,3,20); myplaymov(0,aa(:,:,1:10:end),0.1,1-gray,[0 1]);
 
 % % Learning the value function map
 % v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkmap(1,:,1,j)-q.wkmav(1,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
 
 % % Final value function map 
 % ss=reshape(q.s,q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v=reshape(val,q.ny,q.nx);imagesc(v);colormap(1-gray);
+% v=zeros(q.ny,q.nx,4); for j=1:4 ss=reshape(q.s(:,:,:,j),q.nk,q.ny*q.nx); val=(q.fwkmap-q.fwkmav)*ss; v(:,:,j)=reshape(val,q.ny,q.nx); end; imagesc(mean(v,3));colormap(1-gray);
 
 % % Learning the action value map
 % act=1;v=zeros(q.ny,q.nx,q.ntrial); ss=reshape(q.s,q.ny*q.nx,q.nk)'; for j=1:q.ntrial val=(q.wkgo(act,:,1,j)-q.wknogo(act,:,1,j))*ss; v(:,:,j)=reshape(val,q.ny,q.nx);end;myplaymov(0,v,0.1,1-gray); 
