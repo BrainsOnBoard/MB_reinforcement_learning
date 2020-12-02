@@ -25,6 +25,7 @@ policy = 'on';
 progressflag = false;
 memsave = false;
 d1flag = false;
+action_flag = 'allocentric'; % allocentric (turn towards a goal heading); egocentric (turn relative to current heading)
 one2one = true;
 intervene_id = 0;
 % Environment size
@@ -84,6 +85,10 @@ if nargin>7
     elseif strcmp(varargin{j},'oned')
       % Test run in 1D: 
       d1flag = varargin{j+1};
+      j = j+2;
+    elseif strcmp(varargin{j},'actionflag')
+      % Test run in 1D:
+      action_flag = varargin{j+1};
       j = j+2;
     elseif strcmp(varargin{j},'memsave')
       % Test run in 1D: 
@@ -318,30 +323,33 @@ for tr=1:ntrial
     decision(1,tr) = 4; 
   end;
   
-  %%% Update location
-  if decision(1,tr) == 1
-    xx(2,tr) = min(nx,max(1,xx(1,tr) + 1));
-    yy(2,tr) = yy(1,tr);
-  elseif decision(1,tr) == 2
-    xx(2,tr) = xx(1,tr);
-    yy(2,tr) = min(ny,max(1,yy(1,tr) + 1));
-  elseif decision(1,tr) == 3
-    xx(2,tr) = min(nx,max(1,xx(1,tr) - 1));
-    yy(2,tr) = yy(1,tr);
-  elseif decision(1,tr) == 4
-    xx(2,tr) = xx(1,tr);
-    yy(2,tr) = min(ny,max(1,yy(1,tr) - 1));
-  end;
   %%% Update orientation
-  th(2,tr) = decision(1,tr);
+  if strcmp(action_flag,'allocentric')
+    th(2,tr) = decision(1,tr);
+  elseif strcmp(action_flag,'egocentric')
+    th(2,tr) = mod(th(1, tr) + (decision(1,tr)-1) - 1,4) + 1;
+  end;
   
-%   if mod(decision(1,tr),2)
-%     xx(2,tr) = xx(1,tr);
-%     yy(2,tr) = min(ny,max(1,yy(1,tr) + decision(1,tr) - 2));
-%   else
-%     xx(2,tr) = min(nx,max(1,xx(1,tr) + decision(1,tr) - 3));
-%     yy(2,tr) = yy(1,tr);
-%   end;
+  %%% Update location
+  if strcmp(action_flag,'allocentric')
+    if decision(1,tr) == 1 % Head towards 0 (right)
+      xx(2,tr) = min(nx,max(1,xx(1,tr) + 1));
+      yy(2,tr) = yy(1,tr);
+    elseif decision(1,tr) == 2 % Head towards 90 (up)
+      xx(2,tr) = xx(1,tr);
+      yy(2,tr) = min(ny,max(1,yy(1,tr) + 1));
+    elseif decision(1,tr) == 3 % Head towards 180 (left)
+      xx(2,tr) = min(nx,max(1,xx(1,tr) - 1));
+      yy(2,tr) = yy(1,tr);
+    elseif decision(1,tr) == 4 % Head towards 270 (down)
+      xx(2,tr) = xx(1,tr);
+      yy(2,tr) = min(ny,max(1,yy(1,tr) - 1));
+    end;
+  elseif strcmp(action_flag,'egocentric')
+    xx(2,tr) = round(min(nx,max(1,xx(1,tr) + cos((th(2,tr)-1)*pi/2))));
+    yy(2,tr) = round(min(ny,max(1,yy(1,tr) + sin((th(2,tr)-1)*pi/2))));
+  end;
+
   el(:) = 0;
   el = el + ss / tau_el;
   
@@ -365,7 +373,11 @@ for tr=1:ntrial
     
     % Stimulus at current time
     if strcmp(stimulus, 'ofstad')
-      ss = s(:, yy(j,tr), xx(j,tr), th(j,tr));
+      try
+        ss = s(:, yy(j,tr), xx(j,tr), th(j,tr));
+      catch m
+        keyboard;
+      end;
 %       ss = s(:, yy(j,tr), xx(j,tr));
     else
       ss = s(:, yy(j,tr), xx(j,tr));
@@ -445,30 +457,32 @@ for tr=1:ntrial
         decision(j,tr) = 4; 
       end;
       
-      %%% Update position
-      if decision(j,tr) == 1
-        xx(j+1,tr) = min(nx,max(1,xx(j,tr) + 1));
-        yy(j+1,tr) = yy(j,tr);
-      elseif decision(j,tr) == 2
-        xx(j+1,tr) = xx(j,tr);
-        yy(j+1,tr) = min(ny,max(1,yy(j,tr) + 1));
-      elseif decision(j,tr) == 3
-        xx(j+1,tr) = min(nx,max(1,xx(j,tr) - 1));
-        yy(j+1,tr) = yy(j,tr);
-      elseif decision(j,tr) == 4
-        xx(j+1,tr) = xx(j,tr);
-        yy(j+1,tr) = min(ny,max(1,yy(j,tr) - 1));
-      end;
       %%% Update orientation
-      th(j+1,tr) = decision(j,tr);
+      if strcmp(action_flag,'allocentric')
+        th(j+1,tr) = decision(j,tr);
+      elseif strcmp(action_flag,'egocentric')
+        th(j+1,tr) = mod(th(j, tr) + (decision(j,tr)-1) - 1,4) + 1;
+      end;
       
-%       if mod(decision(j,tr),2)
-%         xx(j+1,tr) = xx(j,tr);
-%         yy(j+1,tr) = min(ny,max(1,yy(j,tr) + decision(j,tr) - 2));
-%       else
-%         xx(j+1,tr) = min(nx,max(1,xx(j,tr) + decision(j,tr) - 3));
-%         yy(j+1,tr) = yy(j,tr);
-%       end;                
+      %%% Update location
+      if strcmp(action_flag,'allocentric')
+        if decision(j,tr) == 1 % Head towards 0 (right)
+          xx(j+1,tr) = min(nx,max(1,xx(j,tr) + 1));
+          yy(j+1,tr) = yy(j,tr);
+        elseif decision(j,tr) == 2 % Head towards 90 (up)
+          xx(j+1,tr) = xx(j,tr);
+          yy(j+1,tr) = min(ny,max(1,yy(j,tr) + 1));
+        elseif decision(j,tr) == 3 % Head towards 180 (left)
+          xx(j+1,tr) = min(nx,max(1,xx(j,tr) - 1));
+          yy(j+1,tr) = yy(j,tr);
+        elseif decision(j,tr) == 4 % Head towards 270 (down)
+          xx(j+1,tr) = xx(j,tr);
+          yy(j+1,tr) = min(ny,max(1,yy(j,tr) - 1));
+        end;
+      elseif strcmp(action_flag,'egocentric')
+        xx(j+1,tr) = round(min(nx,max(1,xx(j,tr) + cos((th(j+1,tr)-1)*pi/2))));
+        yy(j+1,tr) = round(min(ny,max(1,yy(j,tr) + sin((th(j+1,tr)-1)*pi/2))));
+      end;                  
     
       % If the position update led the fly to be outside the perim, bring
       % it back to its previous location
@@ -514,6 +528,7 @@ out.r = r;
 out.s = s;
 out.xx = xx;
 out.yy = yy;
+out.th = th;
 out.nx = nx;
 out.ny = ny;
 out.nt = nt;
