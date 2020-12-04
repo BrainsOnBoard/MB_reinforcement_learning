@@ -116,7 +116,7 @@ sparseness = 0.15; % KC sparseness
 mr = 10; % Total population firing rate.
 
 % Softmax temperature
-T = 1;
+T = 0.25;
 beta = 1 / T;
 % Eligibility trace
 tau_el = 15 * tscale; if d1flag, tau_el = 1; end;
@@ -272,8 +272,8 @@ for tr=1:ntrial
     % Compute MBON firing rates (state and action values)
     map(1,tr) = wkmap * ss;
     mav(1,tr) = wkmav * ss;
-    go(1,:,tr) = wkgo * ss;
-    nogo(1,:,tr) = wknogo * ss;
+    go(1,:,tr) = wkgo * ss; 
+    nogo(1,:,tr) = wknogo * ss; %nogo(1,3,tr) = inf;
   else
     % Save final version of weights before test trial
     if tr==ntrial
@@ -387,13 +387,13 @@ for tr=1:ntrial
     if memsave
       map(j,tr) = wkmap * ss;
       mav(j,tr) = wkmav * ss;
-      go(j,:,tr) = wkgo * ss;
-      nogo(j,:,tr) = wknogo * ss;
+      go(j,:,tr) = wkgo * ss; 
+      nogo(j,:,tr) = wknogo * ss; %nogo(j,3,tr) = inf;
     else
       map(j,tr) = wkmap(:,:,j-1,tr) * ss;
       mav(j,tr) = wkmav(:,:,j-1,tr) * ss;
-      go(j,:,tr) = wkgo(:,:,j-1,tr) * ss;
-      nogo(j,:,tr) = wknogo(:,:,j-1,tr) * ss;
+      go(j,:,tr) = wkgo(:,:,j-1,tr) * ss; 
+      nogo(j,:,tr) = wknogo(:,:,j-1,tr) * ss; 
     end;
     
     rew(j,tr) = r(yy(j,tr),xx(j,tr));
