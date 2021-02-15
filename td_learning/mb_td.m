@@ -33,8 +33,9 @@ pap.ntile = 8;
 pap.stile = 25; % mm
 pap.speed = 12.5; % mm/s
 pap.ttrial = 300; % s
-nx = 20; 
-ny = 20;
+nx = 51; 
+ny = 51;
+centre = ceil(nx/2); % the centre of the arena
 nx2 = ceil(nx/2);
 ny2 = ceil(ny/2);
 nx14 = ceil(nx/4);
@@ -44,16 +45,6 @@ ny34 = ceil(ny*3/4);
 nx116 = ceil(nx/16);
 ny116 = ceil(ny/16);
 nk = nx*ny; % # of KCs
-
-% Compute a scaling factor for time, so that an equivalent trial duration
-% is used in this model when compared to the trial duration in Ofstad et
-% al. The basis for the scaling factor is that, if a fly can walk the width
-% of the arena N times in Ofstad et al, given its walking speed, the model
-% should be able to walk the width of the simulated arena N times, given a
-% walking speed of 1 tile per time step.
-% N = pap.ntile * pap.stile / (pap.speed * pap.ttrial) = nx * 1 / (1 * nt)
-tscale = 1 / (pap.stile / pap.speed) / pap.ntile * min(nx,ny);
-nt = ceil(pap.ttrial * tscale);
 
 %%% Update default parameters with custom options
 if nargin>7
@@ -67,7 +58,7 @@ if nargin>7
         intrvn_strength = ones(nt,1)*varargin{j+3}; % Strength of intervention
       else
         intrvn_strength = varargin{j+3}; % Strength of intervention
-      end;
+      end
       j = j + 4;
     elseif strcmp(varargin{j},'no')
       % Specify the number of cues
@@ -100,11 +91,11 @@ if nargin>7
       j = j+2;
     else
       error('???MB_MV_A: Optional arguments not recognised.');
-    end;
-  end;
-end;
+    end
+  end
+end
 
-if d1flag, ny = 1; nt = nx; end;
+if d1flag, ny = 1; nt = nx; end
 
 %%% Init random # stream
 seeds = 10000:65000;
@@ -116,16 +107,16 @@ sparseness = 0.15; % KC sparseness
 mr = 10; % Total population firing rate.
 
 % Softmax temperature
-T = 1;
+T = 0.25;
 beta = 1 / T;
 % Eligibility trace
-tau_el = 15 * tscale; if d1flag, tau_el = 1; end;
+tau_el = 15 * tscale; if d1flag, tau_el = 1; end
 dec_el = 1 - 1/tau_el;
 
 %%% Generate KC responses to cues
 %s = zeros(nk, ny, nx);
 if strcmp(stimulus, 'ofstad') % Ofstad Arena Visual Input (load pre-generated KC activations for each location)
-    struc = load([fpath 'ofstad_stimulus.mat']);
+    struc = load('ofstad_stimulus.mat');
     s = struc.s/25;
     nk = struc.nk;
     
@@ -140,7 +131,7 @@ elseif strcmp(stimulus, 'one2one') % One to one mapping
   % Add correlations between KCs
   for j=1:nk
     s(j,:,:) = mygfilter(squeeze(s(j,:,:)),[1 1],[20 20],'replicate');
-  end;
+  end
   
 elseif strcmp(stimulus, 'sparse') % Sparse mapping
   for j=1:ny
@@ -157,13 +148,13 @@ elseif strcmp(stimulus, 'sparse') % Sparse mapping
   % Add correlations between KCs
   for j=1:nk
     s(j,:,:) = mygfilter(squeeze(s(j,:,:)),[1 1],[20 20],'replicate');
-  end;
+  end
 
 else
   error('???MB_MV_A: Stimulus arguments not recognised. Use: "ofstad", "one2one" or "sparse"');
-end;
+end
 
-if d1flag, s(:,1,1) = 0; end; % FOR 1D
+if d1flag, s(:,1,1) = 0; end % FOR 1D
 
 %%% Initialise synaptic weights
 if memsave
@@ -180,35 +171,13 @@ else
   wknogo = zeros(4,nk,nt,ntrial); % KC -> NOGO actor
   wkgo(:,:,1,1) = 0.1*rand(4,nk);
   wknogo(:,:,1,1) = 0.1*rand(4,nk);
-end;
+end
 wkdap = gamma * ones(1,nk); % KC -> D+
 wkdav = gamma * ones(1,nk); % KC -> D-
 wmapdap = 1; % M+ -> D+
 wmavdap = 1; % M- -> D+
 wmapdav = 1; % M+ -> D-
 wmavdav = 1; % M- -> D-
-
-%%% Reward location
-% rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
-rloc = {(ny34-(ny116-1)):(ny34+(ny116-1)); (nx14-(nx116-1)):(nx14+(nx116-1))};
-rlocall = zeros(2,length(rloc{1})*length(rloc{2}));
-for j=1:length(rloc{1})
-  for k=1:length(rloc{2})
-    rlocall(1,(j-1)*length(rloc{2}) + k) = rloc{1}(j);
-    rlocall(2,(j-1)*length(rloc{2}) + k) = rloc{2}(k);
-  end;
-end;
-amp = 10; % Total volume of available reward
-r = zeros(ny,nx);
-r(rloc{1},rloc{2}) = amp;
-hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
-radius = min(nx2, ny2) - 1;
-[xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
-perim = -10; % The negative reinforcement for being outside the perim
-r = r - hunger*max(r(:));
-flag_escape = 0;
-if d1flag, r=zeros(1,nx); r(end) = amp; end;
-out.r = r;
 
 %%% Allocate memory
 dap = zeros(nt,ntrial);
@@ -224,42 +193,75 @@ xx = nan(nt,ntrial);
 yy = nan(nt,ntrial);
 trnt = zeros(ntrial,1); % #time steps per trial
 th = zeros(nt,ntrial);
+%th(:) = orientation;
 th(1,:) = randi(4,1,ntrial);
 
 % Init position
-startpos = ones(4,2) * ceil(nx14); 
-if d1flag, startpos = [1 1]; end;
-for j=1:ntrial
-  yy(1,j) = startpos(mod(j-1,size(startpos,1))+1,1);
-  xx(1,j) = startpos(mod(j-1,size(startpos,1))+1,2);
-end;
+yy(1,j) = centre;
+xx(1,j) = centre;
+
 rew = zeros(nt,ntrial);
 
-%%% Run simulation
-for tr=1:ntrial
- 
-  %%% Copy synaptic weights from previous trial 
-  if tr>1
-    if ~memsave
-      wkmap(1,:,1,tr) = wkmap(1,:,j-1,tr-1);
-      wkmav(1,:,1,tr) = wkmav(1,:,j-1,tr-1);
-      wkgo(:,:,1,tr) = wkgo(:,:,j-1,tr-1);
-      wknogo(:,:,1,tr) = wknogo(:,:,j-1,tr-1);
-    end;
-  end;   
-  
-%   if tr==ntrial
-%     r(:) = min(r(:));
+%%% Reward location
+% rloc = {(ny14-(ny116-1)):(ny14+(ny116-1)); (nx34-(nx116-1)):(nx34+(nx116-1))};
+% rloc = {(ny34-(ny116-1)):(ny34+(ny116-1)); (nx14-(nx116-1)):(nx14+(nx116-1))};
+% rlocall = zeros(2,length(rloc{1})*length(rloc{2}));
+% for j=1:length(rloc{1})
+%   for k=1:length(rloc{2})
+%     rlocall(1,(j-1)*length(rloc{2}) + k) = rloc{1}(j);
+%     rlocall(2,(j-1)*length(rloc{2}) + k) = rloc{2}(k);
 %   end;
+% end;
+% amp = 10; % Total volume of available reward
+% r = zeros(ny,nx);
+% r(rloc{1},rloc{2}) = amp;
+% hunger = 0.01; % Negative reinforcement for being hungry (in range [0,1])
+% radius = min(nx2, ny2) - 1;
+% [xp yp] = meshgrid((-nx2+1):(nx2-1),(-ny2+1):(ny2-1));
+% perim = 0; % The negative reinforcement for being outside the perim
+% r = r - hunger*max(r(:));
+% flag_escape = 0;
+% if d1flag, r=zeros(1,nx); r(end) = amp; end;
+% out.r = r;
+
+%%% Path Integration Reward Schedule
+pic = 1; % A constant
+rloc = [nx34, ny14]; % Nest location
+r = zeros(nt,ntrial); % Reward vector
+pid = zeros(nt,ntrial); % Euclidean distance to nest history
+pid(1,:) = sqrt((rloc(1)-startpos(1))^2 + (rloc(2)-startpos(2))^2); % Euclidean distance to nest for initial time steps
+pir = zeros(nt,ntrial);
+
+perim = 0;
+flag_escape = 0;
+radius = min(nx2, ny2) - 1;
+
+%%% Generate Learning Routes
+N = 6; % number of learning routes
+circles = generate_circles(6);
+actions = generate_actions(circles);
+
+%%% Run training phase
+for tr=1:N % from 1 to number of learning routes
+  M = length(actions{tr});
+  
+  %%% Copy synaptic weights from previous trial 
+%   if tr>1
+%     if ~memsave
+%       wkmap(1,:,1,tr) = wkmap(1,:,j-1,tr-1);
+%       wkmav(1,:,1,tr) = wkmav(1,:,j-1,tr-1);
+%       wkgo(:,:,1,tr) = wkgo(:,:,j-1,tr-1);
+%       wknogo(:,:,1,tr) = wknogo(:,:,j-1,tr-1);
+%     end
+%   end 
 
   % Stimulus at current time
   if strcmp(stimulus, 'ofstad')
     ss = s(:, yy(1,tr), xx(1,tr), th(1,tr));
-%     ss = s(:, yy(1,tr), xx(1,tr));
   else
     ss = s(:, yy(1,tr), xx(1,tr));
-  end;
-  
+  end
+
   %%% Initial time step
   if memsave
     % Save final version of weights before test trial
@@ -268,7 +270,7 @@ for tr=1:ntrial
       fwkmav = wkmav;
       fwkgo = wkgo;
       fwknogo = wknogo;
-    end;
+    end
     % Compute MBON firing rates (state and action values)
     map(1,tr) = wkmap * ss;
     mav(1,tr) = wkmav * ss;
@@ -276,113 +278,65 @@ for tr=1:ntrial
     nogo(1,:,tr) = wknogo * ss;
   else
     % Save final version of weights before test trial
+    % TODO use these final version of weights for the testing phase
     if tr==ntrial
       fwkmap = wkmap(1,:,1,tr);
       fwkmav = wkmav(1,:,1,tr);
       fwkgo = wkgo(:,:,1,tr);
       fwknogo = wknogo(:,:,1,tr);
-    end;
+    end
     % Compute MBON firing rates (state and action values)
     map(1,tr) = wkmap(:,:,1,tr) * ss;
     mav(1,tr) = wkmav(:,:,1,tr) * ss;
     go(1,:,tr) = wkgo(:,:,1,tr) * ss;
     nogo(1,:,tr) = wknogo(:,:,1,tr) * ss;
-  end;
-    
-  % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
-  if ~d1flag
-    if strcmp(policy,'on')
-      act_val = go(1,:,tr)-nogo(1,:,tr); % Action values
-      act_val = act_val - max(act_val);
-      probs = exp(act_val*beta) / sum(exp(act_val*beta));
-      probs = probs / sum(probs); % Ensure probs is normalised to 1 (to avoid rounding errors)
-      randchoice = rand;
-      flag = 1; k = 1;
-      while flag
-        if k>4 % FOR DEBUGGING
-          %         error('???MB_MV_TD2: no choice made.');
-          keyboard;
-          %         fprintf('K ABOVE NO\n');
-          %         fprintf('sumprobs = %.5f     randchoice = %f\n',sum(probs),randchoice);
-          %         fprintf('no = %d      seed = %d\n',no,seed);
-          %         for zz=1:nk
-          %           fprintf('%f\n',s(zz,17));
-          %         end;
-        end;
-        if randchoice<sum(probs(1:k))
-          decision(1,tr) = k;
-          flag = 0;
-        end;
-        k = k + 1;
-      end;
-    elseif strcmp(policy,'off')
-      dec = find((go(1,:,tr) - nogo(1,:,tr))==max((go(1,:,tr) - nogo(1,:,tr))));
-      decision(1,tr) = dec(randi(length(dec)));
-    end;
-  else
-    decision(1,tr) = 4; 
-  end;
-  
+  end
+
   %%% Update orientation
   if strcmp(action_flag,'allocentric')
-    th(2,tr) = decision(1,tr);
+    th(2,tr) = actions{tr}(1);
   elseif strcmp(action_flag,'egocentric')
-    th(2,tr) = mod(th(1, tr) + (decision(1,tr)-1) - 1,4) + 1;
-  end;
-  
+    th(2,tr) = mod(th(1, tr) + (actions{tr}(1)-1) - 1,4) + 1;
+  end
+
   %%% Update location
   if strcmp(action_flag,'allocentric')
-    if decision(1,tr) == 1 % Head towards 0 (right)
+    if actions{tr}(1) == 1 % Head towards 0 (right)
       xx(2,tr) = min(nx,max(1,xx(1,tr) + 1));
       yy(2,tr) = yy(1,tr);
-    elseif decision(1,tr) == 2 % Head towards 90 (up)
+    elseif actions{tr}(1) == 2 % Head towards 90 (up)
       xx(2,tr) = xx(1,tr);
       yy(2,tr) = min(ny,max(1,yy(1,tr) + 1));
-    elseif decision(1,tr) == 3 % Head towards 180 (left)
+    elseif actions{tr}(1) == 3 % Head towards 180 (left)
       xx(2,tr) = min(nx,max(1,xx(1,tr) - 1));
       yy(2,tr) = yy(1,tr);
-    elseif decision(1,tr) == 4 % Head towards 270 (down)
+    elseif actions{tr}(1) == 4 % Head towards 270 (down)
       xx(2,tr) = xx(1,tr);
       yy(2,tr) = min(ny,max(1,yy(1,tr) - 1));
-    end;
+    end
   elseif strcmp(action_flag,'egocentric')
     xx(2,tr) = round(min(nx,max(1,xx(1,tr) + cos((th(2,tr)-1)*pi/2))));
     yy(2,tr) = round(min(ny,max(1,yy(1,tr) + sin((th(2,tr)-1)*pi/2))));
-  end;
+  end
 
   el(:) = 0;
   el = el + ss / tau_el;
-  
-  endtrialflag = false;
-  j = 2;
-  
+
   %%% Subsequent timesteps
-  while (j<=nt) && ~endtrialflag % Loop over time until target is reached
-      
-    if tr<ntrial
-      if ~d1flag
-        if any(sum(repmat([yy(j,tr);xx(j,tr)],[1 size(rlocall,2)])==rlocall,1)==2)
-          endtrialflag = true;
-        end;
-      else
-        if xx(j,tr)==nx
-          endtrialflag = true;
-        end;
-      end;
-    end;
-    
+  for j=2:M
+
     % Stimulus at current time
     if strcmp(stimulus, 'ofstad')
       try
         ss = s(:, yy(j,tr), xx(j,tr), th(j,tr));
       catch m
         keyboard;
-      end;
+      end
 %       ss = s(:, yy(j,tr), xx(j,tr));
     else
       ss = s(:, yy(j,tr), xx(j,tr));
-    end;
-    
+    end
+
     % Compute MBON firing rates (state and action values)
     if memsave
       map(j,tr) = wkmap * ss;
@@ -394,17 +348,23 @@ for tr=1:ntrial
       mav(j,tr) = wkmav(:,:,j-1,tr) * ss;
       go(j,:,tr) = wkgo(:,:,j-1,tr) * ss;
       nogo(j,:,tr) = wknogo(:,:,j-1,tr) * ss;
-    end;
+    end
     
+    % TODO can we still record reward history like this? (Obviously after
+    % computing the reward
     rew(j,tr) = r(yy(j,tr),xx(j,tr));
 %     if r(yy(j,tr),xx(j,tr))>0
 %       endtrialflag = true;
 %     end;
-    
+
+    % Compute reward
+    pid(j,tr) = sqrt((rloc(1)-xx(j,tr))^2 + (rloc(2)-yy(j,tr))^2);
+    pir(j,tr) = - pic * (pid(j,tr) - pid(j-1,tr));
+
     % Compute DAN firing rates (add strong punishment if failed to reach target)
-    dap(j,tr) = max(0,wkdap * ss - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + r(yy(j,tr),xx(j,tr)) + perim*flag_escape);
-    dav(j,tr) = max(0,wkdav * ss - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - r(yy(j,tr),xx(j,tr)) - perim*flag_escape);    
-    
+    dap(j,tr) = max(0,wkdap * ss - wmapdap * map(j-1,tr) + wmavdap * mav(j-1,tr) + discount*(wmapdap * map(j,tr) - wmavdap * mav(j,tr)) + pir(j,tr) + perim*flag_escape);
+    dav(j,tr) = max(0,wkdav * ss - wmavdav * mav(j-1,tr) + wmapdav * map(j-1,tr) + discount*(wmavdav * mav(j,tr) - wmapdav * map(j,tr)) - pir(j,tr) - perim*flag_escape);    
+
     % Update KC->MBON weights
     if memsave
       wkmap = max(0,wkmap + epskm * el' .* (dap(j,tr) - dav(j,tr)));
@@ -418,99 +378,94 @@ for tr=1:ntrial
       wknogo(:,:,j,tr) = wknogo(:,:,j-1,tr);
       wkgo(decision(j-1,tr),:,j,tr) = max(0,wkgo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dap(j,tr) - dav(j,tr)));
       wknogo(decision(j-1,tr),:,j,tr) = max(0,wknogo(decision(j-1,tr),:,j-1,tr) + epskm * el' .* (dav(j,tr) - dap(j,tr)));
-    end;
-    
-    if j<nt
-      if ~d1flag
-        % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
-        if strcmp(policy,'on')
-          act_val = go(j,:,tr)-nogo(j,:,tr); % Action values
-          act_val = act_val - max(act_val);
-          probs = exp(act_val*beta) / sum(exp(act_val*beta));
-          probs = probs / sum(probs); % Ensure probs is normalised to 1 (to avoid rounding errors)
-          randchoice = rand;
-          flag = 1; k = 1;
-          while flag
-            if k>4 % FOR DEBUGGING
-              keyboard;
-              %             error('???MB_MV_TD2: Line 402 - no choice made.');
-              
-              %             keyboard;
-              %         fprintf('K ABOVE NO\n');
-              %         fprintf('sumprobs = %.5f     randchoice = %f\n',sum(probs),randchoice);
-              %         fprintf('no = %d      seed = %d\n',no,seed);
-              %         for zz=1:nk
-              %           fprintf('%f\n',s(zz,17));
-              %         end;
-            end;
-            if randchoice<sum(probs(1:k))
-              decision(j,tr) = k;
-              flag = 0;
-            end;
-            k = k + 1;
-          end;
-        elseif strcmp(policy,'off')
-          dec = find((go(j,:,tr) - nogo(j,:,tr))==max((go(j,:,tr) - nogo(j,:,tr))));
-          decision(j,tr) = dec(randi(length(dec)));
-        end;
-      else
-        decision(j,tr) = 4; 
-      end;
-      
-      %%% Update orientation
-      if strcmp(action_flag,'allocentric')
-        th(j+1,tr) = decision(j,tr);
-      elseif strcmp(action_flag,'egocentric')
-        th(j+1,tr) = mod(th(j, tr) + (decision(j,tr)-1) - 1,4) + 1;
-      end;
-      
-      %%% Update location
-      if strcmp(action_flag,'allocentric')
-        if decision(j,tr) == 1 % Head towards 0 (right)
-          xx(j+1,tr) = min(nx,max(1,xx(j,tr) + 1));
-          yy(j+1,tr) = yy(j,tr);
-        elseif decision(j,tr) == 2 % Head towards 90 (up)
-          xx(j+1,tr) = xx(j,tr);
-          yy(j+1,tr) = min(ny,max(1,yy(j,tr) + 1));
-        elseif decision(j,tr) == 3 % Head towards 180 (left)
-          xx(j+1,tr) = min(nx,max(1,xx(j,tr) - 1));
-          yy(j+1,tr) = yy(j,tr);
-        elseif decision(j,tr) == 4 % Head towards 270 (down)
-          xx(j+1,tr) = xx(j,tr);
-          yy(j+1,tr) = min(ny,max(1,yy(j,tr) - 1));
-        end;
-      elseif strcmp(action_flag,'egocentric')
-        xx(j+1,tr) = round(min(nx,max(1,xx(j,tr) + cos((th(j+1,tr)-1)*pi/2))));
-        yy(j+1,tr) = round(min(ny,max(1,yy(j,tr) + sin((th(j+1,tr)-1)*pi/2))));
-      end;                  
-    
-      % If the position update led the fly to be outside the perim, bring
-      % it back to its previous location
-      if ((nx2 - xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2) > radius^2
-          xx(j+1,tr) = xx(j,tr);
-          yy(j+1,tr) = yy(j,tr);
-          flag_escape = 1;
-      else
-          flag_escape = 0;
-      end;
-    end;         
-    
+    end
+
+    %%% Update orientation
+    if strcmp(action_flag,'allocentric')
+      th(j+1,tr) = actions{tr}(j);
+    elseif strcmp(action_flag,'egocentric')
+      th(j+1,tr) = mod(th(j, tr) + (actions{tr}(j)-1) - 1,4) + 1;
+    end
+
+    %%% Update location
+    if strcmp(action_flag,'allocentric')
+      if actions{tr}(j) == 1 % Head towards 0 (right)
+        xx(j+1,tr) = min(nx,max(1,xx(j,tr) + 1));
+        yy(j+1,tr) = yy(j,tr);
+      elseif actions{tr}(j) == 2 % Head towards 90 (up)
+        xx(j+1,tr) = xx(j,tr);
+        yy(j+1,tr) = min(ny,max(1,yy(j,tr) + 1));
+      elseif actions{tr}(j) == 3 % Head towards 180 (left)
+        xx(j+1,tr) = min(nx,max(1,xx(j,tr) - 1));
+        yy(j+1,tr) = yy(j,tr);
+      elseif actions{tr}(j) == 4 % Head towards 270 (down)
+        xx(j+1,tr) = xx(j,tr);
+        yy(j+1,tr) = min(ny,max(1,yy(j,tr) - 1));
+      end
+    elseif strcmp(action_flag,'egocentric')
+      xx(j+1,tr) = round(min(nx,max(1,xx(j,tr) + cos((th(j+1,tr)-1)*pi/2))));
+      yy(j+1,tr) = round(min(ny,max(1,yy(j,tr) + sin((th(j+1,tr)-1)*pi/2))));
+    end                 
+
+    % If the position update led the fly to be outside the perim, bring
+    % it back to its previous location
+    if ((nx2 - xx(j+1,tr))^2 + (ny2 - yy(j+1,tr))^2) > radius^2
+        xx(j+1,tr) = xx(j,tr);
+        yy(j+1,tr) = yy(j,tr);
+        flag_escape = 1;
+    else
+        flag_escape = 0;
+    end       
+
     % Update eligibility trace
     el = el * dec_el + ss / tau_el;
-    
+
     % Report progress
     if progressflag
       if ((tr+1)/ntrial*10)>ceil(tr/ntrial*10) && j==2
         fprintf('%d percent complete\n',tr/ntrial*100);
-      end;
-    end;
-    % Record number of time steps in trial
-    trnt(tr) = j;
-    
-    % Update time
-    j = j + 1;
-  end;  
-end;
+      end
+    end
+
+  end
+end
+end
+  
+  %%% Run testing phase
+  
+  % Choose which direction to move (1-down, 2-left, 3-up, 4-right)
+%   if ~d1flag
+%     if strcmp(policy,'on')
+%       act_val = go(1,:,tr)-nogo(1,:,tr); % Action values
+%       act_val = act_val - max(act_val);
+%       probs = exp(act_val*beta) / sum(exp(act_val*beta));
+%       probs = probs / sum(probs); % Ensure probs is normalised to 1 (to avoid rounding errors)
+%       randchoice = rand;
+%       flag = 1; k = 1;
+%       while flag
+%         if k>4 % FOR DEBUGGING
+%           %         error('???MB_MV_TD2: no choice made.');
+%           keyboard;
+%           %         fprintf('K ABOVE NO\n');
+%           %         fprintf('sumprobs = %.5f     randchoice = %f\n',sum(probs),randchoice);
+%           %         fprintf('no = %d      seed = %d\n',no,seed);
+%           %         for zz=1:nk
+%           %           fprintf('%f\n',s(zz,17));
+%           %         end;
+%         end;
+%         if randchoice<sum(probs(1:k))
+%           decision(1,tr) = k;
+%           flag = 0;
+%         end;
+%         k = k + 1;
+%       end;
+%     elseif strcmp(policy,'off')
+%       dec = find((go(1,:,tr) - nogo(1,:,tr))==max((go(1,:,tr) - nogo(1,:,tr))));
+%       decision(1,tr) = dec(randi(length(dec)));
+%     end;
+%   else
+%     decision(1,tr) = 4; 
+%   end;
 
 %%% Creater output struct
 out.map = map;
@@ -540,6 +495,8 @@ out.fwkmap = fwkmap;
 out.fwkmav = fwkmav;
 out.fwkgo = fwkgo;
 out.fwknogo = fwknogo;
+out.pid = pid;
+out.pir = pir;
 
 % Plotting
 % % Rewards obtained as function of time and trials: quick way to see how fast learning took place
