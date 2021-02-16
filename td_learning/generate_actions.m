@@ -16,18 +16,19 @@ function all_actions = generate_actions(circles)
     x = circles{cir}(:,1); 
     y = circles{cir}(:,2);
     for c = 1 : N-1  
-      %c1 = coordinates(c);
-      %c2 = coordinates(c+1);
-      dx = x(c) - x(c+1);
-      dy = y(c) - y(c+1);
-      if dx == 1 % if x increases by 1
+      dx = x(c+1) - x(c);
+      dy = y(c+1) - y(c);
+      if dx == 1 && dy == 0 % if x increases by 1
         actions(c, 1) = 1; % agent moves right
-      elseif dx == -1 % if x decreases by 1
+      elseif dx == -1 && dy == 0 % if x decreases by 1
         actions(c, 1) = 3; % agent moves left
-      elseif dy == 1 % if y increases by 1
+      elseif dy == 1 && dx == 0 % if y increases by 1
         actions(c, 1) = 2; % agent moves up
-      elseif dy == -1 % if y decreases by 1
+      elseif dy == -1 && dx == 0 % if y decreases by 1
         actions(c, 1) = 4; % agent moves down
+      else
+        fprintf('Circle %d\n',c);
+        error('???: generate_actions -- diagonal move found but not permitted. Problem with generate_circles.');
       end
     end
     all_actions{cir, 1} = actions; % add circle actions to cell array
